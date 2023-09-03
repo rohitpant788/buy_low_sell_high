@@ -34,7 +34,7 @@ def get_historical_data(stock_name, lookback_days):
         stock_data['Price < 50DMA < 200DMA'] = (stock_data['Close'] < stock_data['50 DMA (close)']) & (stock_data['50 DMA (close)'] > stock_data['200 DMA (close)'])
 
         #Code to create the CSV file.
-        #createCsv(stock_data, stock_name)
+        createCsv(stock_data, stock_name)
 
         return stock_data
     except Exception as e:
@@ -52,7 +52,7 @@ def createCsv(stock_data, stock_name):
 
 ######################################################################################################################
 # Specify a stock symbol and look-back days
-stock_symbol = 'ICICIBANK.NS'  # Example: ICICI Bank
+stock_symbol = 'HNGSNGBEES.NS'  # Example: ICICI Bank
 lookback_days = 1000
 
 data = get_historical_data(stock_symbol, lookback_days)

@@ -1,6 +1,6 @@
 import openpyxl
 import pandas as pd
-from config import WORKBOOK_FOR_BUY_LOW, WORKBOOK_V20_SHEET, WORKBOOK_V40_SHEET
+from config import WORKBOOK_FOR_BUY_LOW, WORKBOOK_V20_SHEET, WORKBOOK_V40_SHEET , WORKBOOK_ETF_SHEET
 import get_nse_data
 
 def update_workbook(sheet_name):
@@ -73,6 +73,7 @@ def main():
     # Call the update_workbook function for different sheets as needed
     update_workbook(WORKBOOK_V20_SHEET)
     update_workbook(WORKBOOK_V40_SHEET)
+    update_workbook(WORKBOOK_ETF_SHEET)
 
 if __name__ == "__main__":
     main()
