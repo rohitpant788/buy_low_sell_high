@@ -1,16 +1,28 @@
 import datetime
 import yfinance as yf
+import pandas as pd
 
 def calculate_rsi(data, period=14):
     close = data['Close']
     delta = close.diff()
     gains = delta.where(delta > 0, 0)
     losses = -delta.where(delta < 0, 0)
-    avg_gains = gains.rolling(window=period).mean()
-    avg_losses = losses.rolling(window=period).mean()
-    rs = avg_gains / avg_losses
-    rsi = 100 - (100 / (1 + rs))
-    return rsi
+
+    # Calculate initial average gains and losses
+    avg_gains = gains.iloc[:period].mean()
+    avg_losses = losses.iloc[:period].mean()
+
+    rs_values = []
+
+    for i in range(period, len(gains)):
+        avg_gains = (avg_gains * (period - 1) + gains.iloc[i]) / period
+        avg_losses = (avg_losses * (period - 1) + losses.iloc[i]) / period
+
+        rs = avg_gains / avg_losses
+        rsi = 100 - (100 / (1 + rs))
+        rs_values.append(rsi)
+
+    return pd.Series(rs_values, index=close.index[period:])
 
 def get_historical_data(stock_name, lookback_days=1000):
     try:
