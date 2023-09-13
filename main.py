@@ -1,7 +1,51 @@
 import openpyxl
 import pandas as pd
+from flask import Flask, render_template, redirect, url_for
+
 from config import WORKBOOK_FOR_BUY_LOW, WORKBOOK_V20_SHEET, WORKBOOK_V40_SHEET , WORKBOOK_ETF_SHEET
 import get_nse_data
+
+app = Flask(__name__)
+
+@app.route("/")
+def index():
+    # Load data from the Excel file
+    column_headers, data = load_excel_data(WORKBOOK_V20_SHEET)
+
+    return render_template("index.html", column_headers=column_headers, data=data)
+
+def load_excel_data(sheet_name):
+    # Load the workbook for buy low sell high
+    wb = openpyxl.load_workbook(WORKBOOK_FOR_BUY_LOW)
+
+    try:
+        # Load the sheet with the specified name from Workbook
+        sh1 = wb[sheet_name]
+
+        # Get the total number of rows and columns
+        max_row = sh1.max_row
+        max_col = sh1.max_column
+
+        # Create lists to store column headers and data
+        column_headers = [sh1.cell(1, col).value for col in range(1, max_col + 1)]
+        data = []
+
+        for row in range(2, max_row + 1):  # Start from row 2 (skipping header)
+            row_data = [sh1.cell(row, col).value for col in range(1, max_col + 1)]
+            data.append(row_data)
+
+        return column_headers, data
+    except KeyError:
+        print(f"Sheet {sheet_name} not found in the workbook.")
+
+@app.route("/reload_data", methods=["POST"])
+def reload_data():
+    # Call the update_workbook function for different sheets as needed
+    update_workbook(WORKBOOK_V20_SHEET)
+    update_workbook(WORKBOOK_V40_SHEET)
+    update_workbook(WORKBOOK_ETF_SHEET)
+
+    return redirect(url_for("index"))
 
 def update_workbook(sheet_name):
     # Load the workbook for buy low sell high
@@ -69,11 +113,5 @@ def update_workbook(sheet_name):
     except KeyError:
         print(f"Sheet {sheet_name} not found in the workbook.")
 
-def main():
-    # Call the update_workbook function for different sheets as needed
-    update_workbook(WORKBOOK_V20_SHEET)
-    update_workbook(WORKBOOK_V40_SHEET)
-    update_workbook(WORKBOOK_ETF_SHEET)
-
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)

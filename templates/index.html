@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel Data Viewer</title>
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <!-- Custom Styles -->
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f7f7f7;
+        }
+
+        .container {
+            margin-top: 30px;
+            background-color: #fff;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            text-align: center;
+            padding: 10px;
+            border: 1px solid #ddd;
+        }
+
+        th {
+            background-color: #333;
+            color: #fff;
+        }
+
+        .btn-reload {
+            display: block;
+            margin: 20px auto;
+        }
+
+        .btn-reload button {
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-reload button:hover {
+            background-color: #0056b3;
+        }
+
+        .progress-container {
+            display: none;
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 0;
+            height: 20px;
+            background-color: #007bff;
+            border-radius: 5px;
+        }
+
+        .progress-text {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Excel Data Viewer</h1>
+        <div class="table-responsive">
+            <table class="table table-bordered">
+                <thead class="thead-dark">
+                    <tr>
+                        <!-- Replace with actual table headers -->
+                        {% for header in column_headers %}
+                        <th>{{ header }}</th>
+                        {% endfor %}
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for row in data %}
+                    <tr>
+                        <!-- Populate table data dynamically -->
+                        {% for cell in row %}
+                        <td>{{ cell }}</td>
+                        {% endfor %}
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="btn-reload text-center">
+            <form action="/reload_data" method="POST" onsubmit="showProgressBar()">
+                <button type="submit" id="reloadButton">Reload Data</button>
+            </form>
+            <div class="progress-container">
+                <div class="progress">
+                    <div class="progress-bar" id="progressBar" role="progressbar" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+                <div class="progress-text" id="progressText">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for Progress Bar -->
+    <script>
+        function showProgressBar() {
+            // Disable the reload button
+            document.getElementById("reloadButton").disabled = true;
+
+            // Show the progress bar
+            document.querySelector(".progress-container").style.display = "block";
+
+            // Simulate progress
+            let progressBar = document.getElementById("progressBar");
+            let progressText = document.getElementById("progressText");
+            let width = 0;
+            let interval = setInterval(function () {
+                if (width >= 100) {
+                    clearInterval(interval);
+                    // Hide the progress bar
+                    document.querySelector(".progress-container").style.display = "none";
+                    // Re-enable the reload button
+                    document.getElementById("reloadButton").disabled = false;
+                } else {
+                    width++;
+                    progressBar.style.width = width + "%";
+                    progressText.innerText = width + "%";
+                }
+            }, 50); // Adjust the interval for the desired speed
+        }
+    </script>
+</body>
+</html>
