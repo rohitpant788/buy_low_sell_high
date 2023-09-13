@@ -2,22 +2,47 @@ import openpyxl
 import pandas as pd
 from flask import Flask, render_template, redirect, url_for
 
-from config import WORKBOOK_FOR_BUY_LOW, WORKBOOK_V20_SHEET, WORKBOOK_V40_SHEET , WORKBOOK_ETF_SHEET
+from config import WORKBOOK_FOR_BUY_LOW, WORKBOOK_V20_SHEET, WORKBOOK_V40_SHEET, WORKBOOK_ETF_SHEET
 import get_nse_data
 
 app = Flask(__name__)
 
+
 @app.route("/")
-def index():
+def root():
     # Load data from the Excel file
     column_headers, data = load_excel_data(WORKBOOK_V20_SHEET)
-
     return render_template("index.html", column_headers=column_headers, data=data)
+
+@app.route("/v20")
+def v20():
+    # Load data from the Excel file
+    column_headers, data = load_excel_data(WORKBOOK_V20_SHEET)
+    return render_template("index.html", column_headers=column_headers, data=data)
+
+@app.route("/v40")
+def v40():
+    # Load data from the Excel file
+    column_headers, data = load_excel_data(WORKBOOK_V40_SHEET)
+    return render_template("index.html", column_headers=column_headers, data=data)
+
+@app.route("/etf")
+def etf():
+    # Load data from the Excel file
+    column_headers, data = load_excel_data(WORKBOOK_ETF_SHEET)
+    return render_template("index.html", column_headers=column_headers, data=data)
+
+@app.route("/reload_data", methods=["POST"])
+def reload_data():
+    # Call the update_workbook function for different sheets as needed
+    update_workbook(WORKBOOK_V20_SHEET)
+    update_workbook(WORKBOOK_V40_SHEET)
+    update_workbook(WORKBOOK_ETF_SHEET)
+    return redirect(url_for("index"))
 
 def load_excel_data(sheet_name):
     # Load the workbook for buy low sell high
     wb = openpyxl.load_workbook(WORKBOOK_FOR_BUY_LOW)
-
     try:
         # Load the sheet with the specified name from Workbook
         sh1 = wb[sheet_name]
@@ -38,14 +63,6 @@ def load_excel_data(sheet_name):
     except KeyError:
         print(f"Sheet {sheet_name} not found in the workbook.")
 
-@app.route("/reload_data", methods=["POST"])
-def reload_data():
-    # Call the update_workbook function for different sheets as needed
-    update_workbook(WORKBOOK_V20_SHEET)
-    update_workbook(WORKBOOK_V40_SHEET)
-    update_workbook(WORKBOOK_ETF_SHEET)
-
-    return redirect(url_for("index"))
 
 def update_workbook(sheet_name):
     # Load the workbook for buy low sell high
@@ -112,6 +129,7 @@ def update_workbook(sheet_name):
         wb.save(WORKBOOK_FOR_BUY_LOW)
     except KeyError:
         print(f"Sheet {sheet_name} not found in the workbook.")
+
 
 if __name__ == "__main__":
     app.run(debug=True)
