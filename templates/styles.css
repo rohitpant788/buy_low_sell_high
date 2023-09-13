@@ -1,0 +1,71 @@
+/* styles.css */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+}
+
+.container {
+    margin-top: 30px;
+    background-color: #fff;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.2);
+    padding: 20px;
+}
+
+h1 {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #333;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    text-align: center;
+    padding: 10px;
+    border: 1px solid #ddd;
+}
+
+th {
+    background-color: #333;
+    color: #fff;
+}
+
+.btn-reload {
+    display: block;
+    margin: 20px auto;
+}
+
+.btn-reload button {
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn-reload button:hover {
+    background-color: #0056b3;
+}
+
+.progress-container {
+    display: none;
+    text-align: center;
+}
+
+.progress-bar {
+    width: 0;
+    height: 20px;
+    background-color: #007bff;
+    border-radius: 5px;
+}
+
+.progress-text {
+    margin-top: 10px;
+    font-weight: bold;
+}
