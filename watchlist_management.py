@@ -127,6 +127,16 @@ def get_stocks_in_watchlist(cursor, watchlist_name):
         print(f"Error retrieving stocks in watchlist: {e}")
         return []
 
+def delete_watchlist(cursor, watchlist_name):
+    try:
+        cursor.execute("DELETE FROM watchlist_names WHERE name = ?", (watchlist_name,))
+        cursor.execute("DELETE FROM watchlist_data WHERE watchlist_id IN (SELECT id FROM watchlist_names WHERE name = ?)", (watchlist_name,))
+        cursor.connection.commit()
+        return True
+    except sqlite3.Error as e:
+        print(f"Error deleting watchlist: {e}")
+        return False
+
 ########################################################################################################################
 def manage_watchlists(cursor):
     # User interaction section
@@ -155,6 +165,7 @@ def manage_watchlists(cursor):
             if update_watchlist_name(cursor, selected_watchlist, new_watchlist_name):
                 st.success(f"Watchlist name updated to '{new_watchlist_name}'.")
                 selected_watchlist = new_watchlist_name
+                st.experimental_rerun()
             else:
                 st.error("Failed to update the watchlist name.")
         else:
@@ -167,6 +178,7 @@ def manage_watchlists(cursor):
         if stock_symbol:
             if insert_stock_to_watchlist(cursor, selected_watchlist, stock_symbol):
                 st.success(f"Stock '{stock_symbol}' added to '{selected_watchlist}'.")
+                st.experimental_rerun()
             else:
                 st.error(f"Failed to add stock '{stock_symbol}' to '{selected_watchlist}'.")
         else:
@@ -183,6 +195,7 @@ def manage_watchlists(cursor):
             if delete_stock_from_watchlist(cursor, selected_watchlist, stock_to_delete):
                 st.success(f"Stock '{stock_to_delete}' deleted from '{selected_watchlist}'.")
                 stocks_in_watchlist.remove(stock_to_delete)
+                st.experimental_rerun()
             else:
                 st.error(f"Failed to delete stock '{stock_to_delete}' from '{selected_watchlist}'.")
         else:
@@ -196,18 +209,11 @@ def manage_watchlists(cursor):
             watchlists.remove(selected_watchlist)
             # Clear the selected_watchlist as it no longer exists
             selected_watchlist = None
+            st.experimental_rerun()
         else:
             st.error(f"Failed to delete watchlist '{selected_watchlist}'.")
 
     # Return the selected watchlist name
     return selected_watchlist
 
-def delete_watchlist(cursor, watchlist_name):
-    try:
-        cursor.execute("DELETE FROM watchlist_names WHERE name = ?", (watchlist_name,))
-        cursor.execute("DELETE FROM watchlist_data WHERE watchlist_id IN (SELECT id FROM watchlist_names WHERE name = ?)", (watchlist_name,))
-        cursor.connection.commit()
-        return True
-    except sqlite3.Error as e:
-        print(f"Error deleting watchlist: {e}")
-        return False
+
