@@ -87,6 +87,47 @@ def update_watchlist_name(cursor, old_name, new_name):
     finally:
         cursor.connection.commit()  # Commit the transaction
 
+
+def delete_stock_from_watchlist(cursor, selected_watchlist, stock_to_delete):
+    try:
+        # Get the watchlist_id for the selected watchlist
+        cursor.execute("SELECT id FROM watchlist_names WHERE name = ?", (selected_watchlist,))
+        watchlist_id = cursor.fetchone()
+
+        if watchlist_id:
+            # Delete the stock from watchlist_data based on watchlist_id and stock_symbol
+            cursor.execute("""
+                DELETE FROM watchlist_data
+                WHERE watchlist_id = ? AND stock_symbol = ?
+            """, (watchlist_id[0], stock_to_delete))
+
+            # Commit the changes to the database
+            cursor.connection.commit()
+
+            return True
+        else:
+            return False  # Watchlist not found
+    except sqlite3.Error as e:
+        # Handle database errors here
+        print(f"Error deleting stock from watchlist: {e}")
+        return False
+
+
+def get_stocks_in_watchlist(cursor, watchlist_name):
+    try:
+        cursor.execute('''
+            SELECT stock_symbol
+            FROM watchlist_data AS wd
+            JOIN watchlist_names AS wn ON wd.watchlist_id = wn.id
+            WHERE wn.name = ?
+        ''', (watchlist_name,))
+        stocks = cursor.fetchall()
+        return [row[0] for row in stocks]
+    except sqlite3.Error as e:
+        print(f"Error retrieving stocks in watchlist: {e}")
+        return []
+
+########################################################################################################################
 def manage_watchlists(cursor):
     # User interaction section
     watchlist_name = st.text_input("Enter a new watchlist name:")
@@ -131,3 +172,21 @@ def manage_watchlists(cursor):
                 st.error(f"Failed to add stock '{stock_symbol}' to '{selected_watchlist}'.")
         else:
             st.warning("Please enter a stock symbol.")
+
+    # Get stocks for the selected watchlist
+    stocks_in_watchlist = get_stocks_in_watchlist(cursor, selected_watchlist)
+
+    # Add a section to delete stocks from the selected watchlist
+    st.subheader(f"Delete Stocks from '{selected_watchlist}'")
+    stock_to_delete = st.selectbox("Select a Stock to Delete:", stocks_in_watchlist)
+    if st.button("Delete Stock"):
+        if stock_to_delete:
+            if delete_stock_from_watchlist(cursor, selected_watchlist, stock_to_delete):
+                st.success(f"Stock '{stock_to_delete}' deleted from '{selected_watchlist}'.")
+            else:
+                st.error(f"Failed to delete stock '{stock_to_delete}' from '{selected_watchlist}'.")
+        else:
+            st.warning("Please select a stock to delete.")
+
+    # Return the selected watchlist name
+    return selected_watchlist
