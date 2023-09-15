@@ -146,6 +146,7 @@ def manage_watchlists(cursor):
         if watchlist_name:
             if insert_watchlist_name(cursor, watchlist_name):
                 st.success(f"Watchlist '{watchlist_name}' created successfully.")
+                st.experimental_rerun()
             else:
                 st.error("Failed to create the watchlist.")
         else:

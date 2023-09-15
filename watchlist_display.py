@@ -35,7 +35,7 @@ def display_watchlist_data(cursor, selected_watchlist):
             'dma_200_close': '200 DMA Close',
             'percent_away_from_dma_200': '% Away from 200 DMA',
             'dma_50_close': '50 DMA Close',
-            'price_50dma_200dma': 'Price 50DMA/200DMA',
+            'price_50dma_200dma': 'Price < 50DMA <200DMA',
             'rsi': 'RSI',
             'rsi_rank': 'RSI Rank',
             'dma_200_rank': '200 DMA Rank'
