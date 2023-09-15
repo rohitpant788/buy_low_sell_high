@@ -6,7 +6,7 @@ import streamlit as st
 from config import DATABASE_FILE_PATH  # Specify the path to your SQLite database file
 # Configure logging
 from helper import harvest_all, insert_watchlist_name, get_watchlists, display_watchlist_data, create_watchlist_tables, \
-    insert_stock_to_watchlist
+    insert_stock_to_watchlist, update_watchlist_name
 from logging_utils import get_log_messages
 from update_data import update_database
 
@@ -19,12 +19,21 @@ conn = sqlite3.connect(DATABASE_FILE_PATH)
 
 def main():
     st.title("Buy Low Sell High")
+
+    # Create tabs for watchlist management and display
+    tabs = st.sidebar.radio("Navigation", ["Manage Watchlists", "Display Watchlist"])
+
+
     # Database initialization
     conn = sqlite3.connect(DATABASE_FILE_PATH)
     cursor = conn.cursor()
 
     # Harvest database tables
     create_watchlist_tables(cursor)
+
+
+    
+
 
     # User interaction section
     st.header("User Watchlist Management")
@@ -40,16 +49,27 @@ def main():
             st.warning("Please enter a watchlist name.")  # Add this line to prompt the user to enter a name
 
     # Display available watchlists as radio buttons
-    selected_watchlist = st.radio("Select a Watchlist", get_watchlists(cursor))
+    watchlists = get_watchlists(cursor)
+    selected_watchlist = st.radio("Select a Watchlist", watchlists)
 
     # Debugging: Print the watchlist_name
     print(f"Watchlist Name: {watchlist_name}")
 
+    # Add a section to edit the selected watchlist name
+    new_watchlist_name = st.text_input("Edit Watchlist Name:", selected_watchlist)
+    if st.button("Save"):
+        if new_watchlist_name:
+            if update_watchlist_name(cursor, selected_watchlist, new_watchlist_name):
+                st.success(f"Watchlist name updated to '{new_watchlist_name}'.")
+                selected_watchlist = new_watchlist_name  # Update the selected watchlist name
+            else:
+                st.error("Failed to update the watchlist name.")
+        else:
+            st.warning("Please enter a new watchlist name.")
+
     # Add a section to add stocks to the selected watchlist
     st.subheader(f"Add Stocks to '{selected_watchlist}'")
     stock_symbol = st.text_input("Enter a stock symbol:")
-
-
     if st.button("Add Stock"):
         if stock_symbol:
             # You can add validation and error handling here if needed
@@ -66,7 +86,7 @@ def main():
     # Reload Data button
     if st.button("Reload Data"):
         with st.spinner("Reloading data..."):
-            update_database(conn,selected_watchlist)  # Modify this function to update the database
+            update_database(conn, selected_watchlist)  # Modify this function to update the database
 
     # Display logs in a text area
     log_messages = get_log_messages()
@@ -75,7 +95,6 @@ def main():
 
     # Close the database connection
     conn.close()
-
 
 if __name__ == "__main__":
     main()

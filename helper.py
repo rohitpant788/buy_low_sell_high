@@ -137,3 +137,13 @@ def insert_stock_to_watchlist(cursor, watchlist_name, stock_symbol):
         # Handle database errors here
         print(f"Error inserting stock into watchlist: {e}")
         return False
+
+def update_watchlist_name(cursor, old_name, new_name):
+    try:
+        cursor.execute("UPDATE watchlist_names SET name = ? WHERE name = ?", (new_name, old_name))
+        return True  # Return True on success
+    except sqlite3.Error as e:
+        print(f"Error updating watchlist name: {e}")
+        return False  # Return False on failure
+    finally:
+        cursor.connection.commit()  # Commit the transaction
