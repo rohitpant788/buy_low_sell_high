@@ -44,7 +44,7 @@
         </table>
     </div>
     <div class="btn-reload text-center">
-        <form id="reloadForm" method="POST" onsubmit="showProgressBar()">
+        <form action="/reload_data" id="reloadForm" method="POST" onsubmit="showProgressBar()">
             <input type="hidden" id="selectedSheet" name="selectedSheet" value="v20">
             <button type="submit" id="reloadButton">Reload Data</button>
         </form>

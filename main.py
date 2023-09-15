@@ -9,10 +9,11 @@ app = Flask(__name__)
 
 
 @app.route("/")
-def root():
+def index():
     # Load data from the Excel file
     column_headers, data = load_excel_data(WORKBOOK_V20_SHEET)
     return render_template("index.html", column_headers=column_headers, data=data)
+
 
 @app.route("/v20")
 def v20():
@@ -20,17 +21,20 @@ def v20():
     column_headers, data = load_excel_data(WORKBOOK_V20_SHEET)
     return render_template("index.html", column_headers=column_headers, data=data)
 
+
 @app.route("/v40")
 def v40():
     # Load data from the Excel file
     column_headers, data = load_excel_data(WORKBOOK_V40_SHEET)
     return render_template("index.html", column_headers=column_headers, data=data)
 
+
 @app.route("/etf")
 def etf():
     # Load data from the Excel file
     column_headers, data = load_excel_data(WORKBOOK_ETF_SHEET)
     return render_template("index.html", column_headers=column_headers, data=data)
+
 
 @app.route("/reload_data", methods=["POST"])
 def reload_data():
@@ -39,6 +43,7 @@ def reload_data():
     update_workbook(WORKBOOK_V40_SHEET)
     update_workbook(WORKBOOK_ETF_SHEET)
     return redirect(url_for("index"))
+
 
 def load_excel_data(sheet_name):
     # Load the workbook for buy low sell high
