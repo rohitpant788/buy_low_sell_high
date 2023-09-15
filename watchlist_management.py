@@ -1,18 +1,7 @@
 import sqlite3
+
 import streamlit as st
-import pandas as pd
 
-def harvest_all():
-    # Connect to the SQLite database or create it if it doesn't exist
-    conn = sqlite3.connect('your_database.db')
-    cursor = conn.cursor()
-
-    # Create tables
-    create_watchlist_tables(cursor)
-
-    # Commit changes and close the database connection
-    conn.commit()
-    conn.close()
 
 def create_watchlist_tables(cursor):
     # Create a table to store watchlist names
@@ -63,56 +52,6 @@ def insert_watchlist_name(cursor, watchlist_name):
     finally:
         cursor.connection.commit()  # Commit the transaction
 
-
-
-def display_watchlist_data(cursor, selected_watchlist):
-    cursor.execute('''
-        SELECT
-            wd.stock_symbol,
-            wd.stock_price,
-            wd.per_change,
-            wd.dma_200_close,
-            wd.percent_away_from_dma_200,
-            wd.dma_50_close,
-            wd.price_50dma_200dma,
-            wd.rsi,
-            wd.rsi_rank,
-            wd.dma_200_rank
-        FROM watchlist_data AS wd
-        JOIN watchlist_names AS wn ON wd.watchlist_id = wn.id
-        WHERE wn.name = ?
-    ''', (selected_watchlist,))
-    watchlist_data = cursor.fetchall()
-
-    if not watchlist_data:
-        st.warning("No data available for the selected watchlist.")
-    else:
-        # Convert the result to a DataFrame and add column names
-        column_names = [description[0] for description in cursor.description]
-        df = pd.DataFrame(watchlist_data, columns=column_names)
-
-        # Define a dictionary to map original column names to custom names
-        custom_column_names = {
-            'stock_symbol': 'Symbol',
-            'stock_price': 'Price',
-            'per_change': '% Change',
-            'dma_200_close': '200 DMA Close',
-            'percent_away_from_dma_200': '% Away from 200 DMA',
-            'dma_50_close': '50 DMA Close',
-            'price_50dma_200dma': 'Price 50DMA/200DMA',
-            'rsi': 'RSI',
-            'rsi_rank': 'RSI Rank',
-            'dma_200_rank': '200 DMA Rank'
-        }
-
-        # Rename the columns using the custom names
-        df = df.rename(columns=custom_column_names)
-
-        # Display the DataFrame as a table with custom headers
-        st.write("Watchlist Data:")
-        st.write(df, use_container_width=True)
-
-
 def insert_stock_to_watchlist(cursor, watchlist_name, stock_symbol):
     try:
         # Check if the watchlist exists
@@ -147,3 +86,48 @@ def update_watchlist_name(cursor, old_name, new_name):
         return False  # Return False on failure
     finally:
         cursor.connection.commit()  # Commit the transaction
+
+def manage_watchlists(cursor):
+    # User interaction section
+    watchlist_name = st.text_input("Enter a new watchlist name:")
+
+    if st.button("Create Watchlist"):
+        if watchlist_name:
+            if insert_watchlist_name(cursor, watchlist_name):
+                st.success(f"Watchlist '{watchlist_name}' created successfully.")
+            else:
+                st.error("Failed to create the watchlist.")
+        else:
+            st.warning("Please enter a watchlist name.")  # Add this line to prompt the user to enter a name
+
+    # Display available watchlists as radio buttons
+    watchlists = get_watchlists(cursor)
+    selected_watchlist = st.radio("Select a Watchlist", watchlists)
+
+    # Debugging: Print the watchlist_name
+    print(f"Watchlist Name: {watchlist_name}")
+
+    # Add a section to edit the selected watchlist name
+    new_watchlist_name = st.text_input("Edit Watchlist Name:", selected_watchlist)
+    if st.button("Save"):
+        if new_watchlist_name:
+            if update_watchlist_name(cursor, selected_watchlist, new_watchlist_name):
+                st.success(f"Watchlist name updated to '{new_watchlist_name}'.")
+                selected_watchlist = new_watchlist_name  # Update the selected watchlist name
+            else:
+                st.error("Failed to update the watchlist name.")
+        else:
+            st.warning("Please enter a new watchlist name.")
+
+    # Add a section to add stocks to the selected watchlist
+    st.subheader(f"Add Stocks to '{selected_watchlist}'")
+    stock_symbol = st.text_input("Enter a stock symbol:")
+    if st.button("Add Stock"):
+        if stock_symbol:
+            # You can add validation and error handling here if needed
+            if insert_stock_to_watchlist(cursor, selected_watchlist, stock_symbol):
+                st.success(f"Stock '{stock_symbol}' added to '{selected_watchlist}'.")
+            else:
+                st.error(f"Failed to add stock '{stock_symbol}' to '{selected_watchlist}'.")
+        else:
+            st.warning("Please enter a stock symbol.")
