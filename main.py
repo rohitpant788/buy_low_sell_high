@@ -1,13 +1,17 @@
 import openpyxl
 import pandas as pd
 import streamlit as st
+import logging
 
 from config import WORKBOOK_FOR_BUY_LOW, WORKBOOK_V20_SHEET, WORKBOOK_V40_SHEET, WORKBOOK_ETF_SHEET
 import get_nse_data
 
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
 # Load the Excel workbook once at the beginning of the script
 wb = openpyxl.load_workbook(WORKBOOK_FOR_BUY_LOW)
-
 
 # Define your Streamlit app
 def main():
@@ -15,9 +19,10 @@ def main():
 
     # Add a button to reload data
     if st.button("Reload Data"):
-        update_workbook(WORKBOOK_V20_SHEET)
-        update_workbook(WORKBOOK_V40_SHEET)
-        update_workbook(WORKBOOK_ETF_SHEET)
+        with st.spinner("Reloading data..."):
+            update_workbook(WORKBOOK_V20_SHEET)
+            update_workbook(WORKBOOK_V40_SHEET)
+            update_workbook(WORKBOOK_ETF_SHEET)
 
     # Choose which sheet to display
     sheet_name = st.radio("Select Sheet", ["V20", "V40", "ETF"])
@@ -27,19 +32,19 @@ def main():
     df = pd.DataFrame(data, columns=column_headers)
     st.write("Data:", df)
 
-    # Create a text area below the table for displaying messages
+    # Display log messages
     st.subheader("Log Messages")
-    log_messages = st.text_area("Log Messages", value="", height=200)
-
-    # Display log messages in the text area
-    with st.echo():
-        st.text("Your log messages go here.")
-        # Append log messages to the text area
-        log_messages += "\nYour new log message"  # Replace with your log message
-
-    # Update log messages in the text area
+    log_messages = get_log_messages()
     st.text_area("Log Messages", value=log_messages, height=200)
 
+def get_log_messages():
+    log_messages = st.session_state.get("log_messages", "")
+    return log_messages
+
+def update_log_messages(log_message):
+    log_messages = get_log_messages()
+    log_messages += "\n" + log_message
+    st.session_state.log_messages = log_messages
 
 def load_excel_data(sheet_name):
     try:
@@ -61,12 +66,11 @@ def load_excel_data(sheet_name):
     except KeyError:
         st.error(f"Sheet {sheet_name} not found in the workbook.")
 
-
 def update_workbook(sheet_name):
     try:
         sh1 = wb[sheet_name]
         # Update workbook as before
-        # Append log messages to the log area using st.text
+        # Use logger for log messages
 
         # Get the total number of rows
         max_row = sh1.max_row
@@ -87,9 +91,9 @@ def update_workbook(sheet_name):
             candles = get_nse_data.get_historical_data(stock_symbol)
             df = pd.DataFrame(candles)
 
-            # Append log messages for each row to the log area
             log_message = f'Processing Row {row} for symbol {sym}'
-            st.text(log_message)
+            logger.info(log_message)
+            update_log_messages(log_message)
 
             if not df.empty:
                 # Get the last row of the DataFrame
@@ -127,7 +131,6 @@ def update_workbook(sheet_name):
         wb.save(WORKBOOK_FOR_BUY_LOW)
     except KeyError:
         st.error(f"Sheet {sheet_name} not found in the workbook.")
-
 
 if __name__ == "__main__":
     main()
