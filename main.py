@@ -1,64 +1,81 @@
-import openpyxl
-import pandas as pd
-import streamlit as st
 import logging
+import sqlite3
 
-from config import WORKBOOK_FOR_BUY_LOW, WORKBOOK_V20_SHEET, WORKBOOK_V40_SHEET, WORKBOOK_ETF_SHEET
-import get_nse_data
+import streamlit as st
 
+from config import DATABASE_FILE_PATH  # Specify the path to your SQLite database file
 # Configure logging
-from logging_utils import get_log_messages, update_log_messages
-from update_data import update_workbook
+from helper import harvest_all, insert_watchlist_name, get_watchlists, display_watchlist_data, create_watchlist_tables, \
+    insert_stock_to_watchlist
+from logging_utils import get_log_messages
+from update_data import update_database
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load the Excel workbook once at the beginning of the script
-wb = openpyxl.load_workbook(WORKBOOK_FOR_BUY_LOW)
+# Connect to the SQLite database
+conn = sqlite3.connect(DATABASE_FILE_PATH)
 
-# Define your Streamlit app
+
 def main():
     st.title("Buy Low Sell High")
+    # Database initialization
+    conn = sqlite3.connect(DATABASE_FILE_PATH)
+    cursor = conn.cursor()
 
-    # Add a button to reload data
+    # Harvest database tables
+    create_watchlist_tables(cursor)
+
+    # User interaction section
+    st.header("User Watchlist Management")
+    watchlist_name = st.text_input("Enter a new watchlist name:")
+
+    if st.button("Create Watchlist"):
+        if watchlist_name:
+            if insert_watchlist_name(cursor, watchlist_name):
+                st.success(f"Watchlist '{watchlist_name}' created successfully.")
+            else:
+                st.error("Failed to create the watchlist.")
+        else:
+            st.warning("Please enter a watchlist name.")  # Add this line to prompt the user to enter a name
+
+    # Display available watchlists as radio buttons
+    selected_watchlist = st.radio("Select a Watchlist", get_watchlists(cursor))
+
+    # Debugging: Print the watchlist_name
+    print(f"Watchlist Name: {watchlist_name}")
+
+    # Add a section to add stocks to the selected watchlist
+    st.subheader(f"Add Stocks to '{selected_watchlist}'")
+    stock_symbol = st.text_input("Enter a stock symbol:")
+
+
+    if st.button("Add Stock"):
+        if stock_symbol:
+            # You can add validation and error handling here if needed
+            if insert_stock_to_watchlist(cursor, selected_watchlist, stock_symbol):
+                st.success(f"Stock '{stock_symbol}' added to '{selected_watchlist}'.")
+            else:
+                st.error(f"Failed to add stock '{stock_symbol}' to '{selected_watchlist}'.")
+        else:
+            st.warning("Please enter a stock symbol.")
+
+    # Display watchlist data in a table
+    display_watchlist_data(cursor, selected_watchlist)
+
+    # Reload Data button
     if st.button("Reload Data"):
         with st.spinner("Reloading data..."):
-            update_workbook(wb,WORKBOOK_V20_SHEET)
-            update_workbook(wb,WORKBOOK_V40_SHEET)
-            update_workbook(wb,WORKBOOK_ETF_SHEET)
+            update_database(conn,selected_watchlist)  # Modify this function to update the database
 
-    # Choose which sheet to display
-    sheet_name = st.radio("Select Sheet", ["V20", "V40", "ETF"])
-    column_headers, data = load_excel_data(sheet_name)
-
-    # Display the data in a table using a DataFrame
-    df = pd.DataFrame(data, columns=column_headers)
-    st.write("Data:", df)
-
-    # Display log messages
-    st.subheader("Log Messages")
+    # Display logs in a text area
     log_messages = get_log_messages()
+    st.subheader("Log Messages")
     st.text_area("Log Messages", value=log_messages, height=200)
 
-def load_excel_data(sheet_name):
-    try:
-        # Load and process Excel data as before
-        sh1 = wb[sheet_name]
+    # Close the database connection
+    conn.close()
 
-        # Get the total number of rows and columns
-        max_row = sh1.max_row
-        max_col = sh1.max_column
-
-        # Create lists to store column headers and data
-        column_headers = [sh1.cell(1, col).value for col in range(1, max_col + 1)]
-        data = []
-
-        for row in range(2, max_row + 1):  # Start from row 2 (skipping header)
-            row_data = [sh1.cell(row, col).value for col in range(1, max_col + 1)]
-            data.append(row_data)
-        return column_headers, data
-    except KeyError:
-        st.error(f"Sheet {sheet_name} not found in the workbook.")
 
 if __name__ == "__main__":
     main()

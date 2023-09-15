@@ -1,5 +1,1 @@
-#Worksheet Constants
-WORKBOOK_FOR_BUY_LOW = 'buy_low.xlsx'
-WORKBOOK_V20_SHEET= 'V20'
-WORKBOOK_V40_SHEET='V40'
-WORKBOOK_ETF_SHEET='ETF'
+DATABASE_FILE_PATH = "buy_low_sell_high.db"
