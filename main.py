@@ -23,9 +23,9 @@ def main():
     # Add a button to reload data
     if st.button("Reload Data"):
         with st.spinner("Reloading data..."):
-            update_workbook(WORKBOOK_V20_SHEET)
-            update_workbook(WORKBOOK_V40_SHEET)
-            update_workbook(WORKBOOK_ETF_SHEET)
+            update_workbook(wb,WORKBOOK_V20_SHEET)
+            update_workbook(wb,WORKBOOK_V40_SHEET)
+            update_workbook(wb,WORKBOOK_ETF_SHEET)
 
     # Choose which sheet to display
     sheet_name = st.radio("Select Sheet", ["V20", "V40", "ETF"])
