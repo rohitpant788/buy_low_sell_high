@@ -139,7 +139,7 @@ def manage_watchlists(cursor):
             else:
                 st.error("Failed to create the watchlist.")
         else:
-            st.warning("Please enter a watchlist name.")  # Add this line to prompt the user to enter a name
+            st.warning("Please enter a watchlist name.")
 
     # Display available watchlists as radio buttons
     watchlists = get_watchlists(cursor)
@@ -154,7 +154,7 @@ def manage_watchlists(cursor):
         if new_watchlist_name:
             if update_watchlist_name(cursor, selected_watchlist, new_watchlist_name):
                 st.success(f"Watchlist name updated to '{new_watchlist_name}'.")
-                selected_watchlist = new_watchlist_name  # Update the selected watchlist name
+                selected_watchlist = new_watchlist_name
             else:
                 st.error("Failed to update the watchlist name.")
         else:
@@ -165,7 +165,6 @@ def manage_watchlists(cursor):
     stock_symbol = st.text_input("Enter a stock symbol:")
     if st.button("Add Stock"):
         if stock_symbol:
-            # You can add validation and error handling here if needed
             if insert_stock_to_watchlist(cursor, selected_watchlist, stock_symbol):
                 st.success(f"Stock '{stock_symbol}' added to '{selected_watchlist}'.")
             else:
@@ -183,10 +182,32 @@ def manage_watchlists(cursor):
         if stock_to_delete:
             if delete_stock_from_watchlist(cursor, selected_watchlist, stock_to_delete):
                 st.success(f"Stock '{stock_to_delete}' deleted from '{selected_watchlist}'.")
+                stocks_in_watchlist.remove(stock_to_delete)
             else:
                 st.error(f"Failed to delete stock '{stock_to_delete}' from '{selected_watchlist}'.")
         else:
             st.warning("Please select a stock to delete.")
 
+    # Add a section to delete the entire watchlist
+    st.subheader(f"Delete Watchlist '{selected_watchlist}'")
+    if st.button("Delete Watchlist"):
+        if delete_watchlist(cursor, selected_watchlist):
+            st.success(f"Watchlist '{selected_watchlist}' deleted successfully.")
+            watchlists.remove(selected_watchlist)
+            # Clear the selected_watchlist as it no longer exists
+            selected_watchlist = None
+        else:
+            st.error(f"Failed to delete watchlist '{selected_watchlist}'.")
+
     # Return the selected watchlist name
     return selected_watchlist
+
+def delete_watchlist(cursor, watchlist_name):
+    try:
+        cursor.execute("DELETE FROM watchlist_names WHERE name = ?", (watchlist_name,))
+        cursor.execute("DELETE FROM watchlist_data WHERE watchlist_id IN (SELECT id FROM watchlist_names WHERE name = ?)", (watchlist_name,))
+        cursor.connection.commit()
+        return True
+    except sqlite3.Error as e:
+        print(f"Error deleting watchlist: {e}")
+        return False
