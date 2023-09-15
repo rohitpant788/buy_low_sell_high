@@ -23,9 +23,22 @@ def main():
     sheet_name = st.radio("Select Sheet", ["V20", "V40", "ETF"])
     column_headers, data = load_excel_data(sheet_name)
 
-    # Display the data in a table
-    st.write("Column Headers:", column_headers)
-    st.write("Data:", data)
+    # Display the data in a table using a DataFrame
+    df = pd.DataFrame(data, columns=column_headers)
+    st.write("Data:", df)
+
+    # Create a text area below the table for displaying messages
+    st.subheader("Log Messages")
+    log_messages = st.text_area("Log Messages", value="", height=200)
+
+    # Display log messages in the text area
+    with st.echo():
+        st.text("Your log messages go here.")
+        # Append log messages to the text area
+        log_messages += "\nYour new log message"  # Replace with your log message
+
+    # Update log messages in the text area
+    st.text_area("Log Messages", value=log_messages, height=200)
 
 
 def load_excel_data(sheet_name):
@@ -53,7 +66,7 @@ def update_workbook(sheet_name):
     try:
         sh1 = wb[sheet_name]
         # Update workbook as before
-        # Replace print statements with st.write() for displaying progress
+        # Append log messages to the log area using st.text
 
         # Get the total number of rows
         max_row = sh1.max_row
@@ -74,7 +87,9 @@ def update_workbook(sheet_name):
             candles = get_nse_data.get_historical_data(stock_symbol)
             df = pd.DataFrame(candles)
 
-            st.write(f'Processing Row {row} for symbol {sym}')
+            # Append log messages for each row to the log area
+            log_message = f'Processing Row {row} for symbol {sym}'
+            st.text(log_message)
 
             if not df.empty:
                 # Get the last row of the DataFrame
@@ -112,6 +127,7 @@ def update_workbook(sheet_name):
         wb.save(WORKBOOK_FOR_BUY_LOW)
     except KeyError:
         st.error(f"Sheet {sheet_name} not found in the workbook.")
+
 
 if __name__ == "__main__":
     main()
