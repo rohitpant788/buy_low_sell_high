@@ -1,36 +1,55 @@
 import openpyxl
 import pandas as pd
-import streamlit as st
+from flask import Flask, render_template, redirect, url_for
 
 from config import WORKBOOK_FOR_BUY_LOW, WORKBOOK_V20_SHEET, WORKBOOK_V40_SHEET, WORKBOOK_ETF_SHEET
 import get_nse_data
 
-# Load the Excel workbook once at the beginning of the script
-wb = openpyxl.load_workbook(WORKBOOK_FOR_BUY_LOW)
+app = Flask(__name__)
 
 
-# Define your Streamlit app
-def main():
-    st.title("Buy Low Sell High")
+@app.route("/")
+def index():
+    # Load data from the Excel file
+    column_headers, data = load_excel_data(WORKBOOK_V20_SHEET)
+    return render_template("index.html", column_headers=column_headers, data=data)
 
-    # Add a button to reload data
-    if st.button("Reload Data"):
-        update_workbook(WORKBOOK_V20_SHEET)
-        update_workbook(WORKBOOK_V40_SHEET)
-        update_workbook(WORKBOOK_ETF_SHEET)
 
-    # Choose which sheet to display
-    sheet_name = st.radio("Select Sheet", ["V20", "V40", "ETF"])
-    column_headers, data = load_excel_data(sheet_name)
+@app.route("/v20")
+def v20():
+    # Load data from the Excel file
+    column_headers, data = load_excel_data(WORKBOOK_V20_SHEET)
+    return render_template("index.html", column_headers=column_headers, data=data)
 
-    # Display the data in a table
-    st.write("Column Headers:", column_headers)
-    st.write("Data:", data)
+
+@app.route("/v40")
+def v40():
+    # Load data from the Excel file
+    column_headers, data = load_excel_data(WORKBOOK_V40_SHEET)
+    return render_template("index.html", column_headers=column_headers, data=data)
+
+
+@app.route("/etf")
+def etf():
+    # Load data from the Excel file
+    column_headers, data = load_excel_data(WORKBOOK_ETF_SHEET)
+    return render_template("index.html", column_headers=column_headers, data=data)
+
+
+@app.route("/reload_data", methods=["POST"])
+def reload_data():
+    # Call the update_workbook function for different sheets as needed
+    update_workbook(WORKBOOK_V20_SHEET)
+    update_workbook(WORKBOOK_V40_SHEET)
+    update_workbook(WORKBOOK_ETF_SHEET)
+    return redirect(url_for("index"))
 
 
 def load_excel_data(sheet_name):
+    # Load the workbook for buy low sell high
+    wb = openpyxl.load_workbook(WORKBOOK_FOR_BUY_LOW)
     try:
-        # Load and process Excel data as before
+        # Load the sheet with the specified name from Workbook
         sh1 = wb[sheet_name]
 
         # Get the total number of rows and columns
@@ -44,16 +63,19 @@ def load_excel_data(sheet_name):
         for row in range(2, max_row + 1):  # Start from row 2 (skipping header)
             row_data = [sh1.cell(row, col).value for col in range(1, max_col + 1)]
             data.append(row_data)
+
         return column_headers, data
     except KeyError:
-        st.error(f"Sheet {sheet_name} not found in the workbook.")
+        print(f"Sheet {sheet_name} not found in the workbook.")
 
 
 def update_workbook(sheet_name):
+    # Load the workbook for buy low sell high
+    wb = openpyxl.load_workbook(WORKBOOK_FOR_BUY_LOW)
+
     try:
+        # Load the sheet with the specified name from Workbook
         sh1 = wb[sheet_name]
-        # Update workbook as before
-        # Replace print statements with st.write() for displaying progress
 
         # Get the total number of rows
         max_row = sh1.max_row
@@ -74,7 +96,7 @@ def update_workbook(sheet_name):
             candles = get_nse_data.get_historical_data(stock_symbol)
             df = pd.DataFrame(candles)
 
-            st.write(f'Processing Row {row} for symbol {sym}')
+            print(f'Processing Row {row} for symbol {sym}')
 
             if not df.empty:
                 # Get the last row of the DataFrame
@@ -111,7 +133,8 @@ def update_workbook(sheet_name):
         # Save the updated workbook
         wb.save(WORKBOOK_FOR_BUY_LOW)
     except KeyError:
-        st.error(f"Sheet {sheet_name} not found in the workbook.")
+        print(f"Sheet {sheet_name} not found in the workbook.")
+
 
 if __name__ == "__main__":
-    main()
+    app.run(debug=True)
