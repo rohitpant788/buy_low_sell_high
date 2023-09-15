@@ -1,64 +1,63 @@
-import openpyxl
-import pandas as pd
-import streamlit as st
 import logging
+import sqlite3
 
-from config import WORKBOOK_FOR_BUY_LOW, WORKBOOK_V20_SHEET, WORKBOOK_V40_SHEET, WORKBOOK_ETF_SHEET
-import get_nse_data
+import streamlit as st
 
+from config import DATABASE_FILE_PATH  # Specify the path to your SQLite database file
 # Configure logging
-from logging_utils import get_log_messages, update_log_messages
-from update_data import update_workbook
+from logging_utils import get_log_messages
+from update_data import update_database
+from watchlist_display import display_watchlist_data
+from watchlist_management import manage_watchlists, create_watchlist_tables, get_watchlists
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Load the Excel workbook once at the beginning of the script
-wb = openpyxl.load_workbook(WORKBOOK_FOR_BUY_LOW)
+# Connect to the SQLite database
+conn = sqlite3.connect(DATABASE_FILE_PATH)
 
-# Define your Streamlit app
+
 def main():
     st.title("Buy Low Sell High")
+    # Create tabs for watchlist management and display
+    tabs = st.sidebar.radio("Navigation", ["Manage Watchlists", "Display Watchlist"])
 
-    # Add a button to reload data
-    if st.button("Reload Data"):
-        with st.spinner("Reloading data..."):
-            update_workbook(wb,WORKBOOK_V20_SHEET)
-            update_workbook(wb,WORKBOOK_V40_SHEET)
-            update_workbook(wb,WORKBOOK_ETF_SHEET)
+    # Database initialization
+    conn = sqlite3.connect(DATABASE_FILE_PATH)
+    cursor = conn.cursor()
 
-    # Choose which sheet to display
-    sheet_name = st.radio("Select Sheet", ["V20", "V40", "ETF"])
-    column_headers, data = load_excel_data(sheet_name)
+    # Harvest database tables
+    create_watchlist_tables(cursor)
 
-    # Display the data in a table using a DataFrame
-    df = pd.DataFrame(data, columns=column_headers)
-    st.write("Data:", df)
+    if tabs == "Manage Watchlists":
+        # User interaction section for managing watchlists
+        st.header("User Watchlist Management")
 
-    # Display log messages
-    st.subheader("Log Messages")
-    log_messages = get_log_messages()
-    st.text_area("Log Messages", value=log_messages, height=200)
+        # Display available watchlists as radio buttons and manage watchlists
+        selected_watchlist = manage_watchlists(cursor)
 
-def load_excel_data(sheet_name):
-    try:
-        # Load and process Excel data as before
-        sh1 = wb[sheet_name]
+    elif tabs == "Display Watchlist":
+        # User interaction section for displaying watchlist data
+        st.header("Display Watchlist Data")
 
-        # Get the total number of rows and columns
-        max_row = sh1.max_row
-        max_col = sh1.max_column
+        # Display available watchlists as radio buttons for display
+        selected_watchlist = st.radio("Select a Watchlist", get_watchlists(cursor))
 
-        # Create lists to store column headers and data
-        column_headers = [sh1.cell(1, col).value for col in range(1, max_col + 1)]
-        data = []
+        # Reload Data button
+        if st.button("Reload Data"):
+            with st.spinner("Reloading data..."):
+                update_database(conn, selected_watchlist)
 
-        for row in range(2, max_row + 1):  # Start from row 2 (skipping header)
-            row_data = [sh1.cell(row, col).value for col in range(1, max_col + 1)]
-            data.append(row_data)
-        return column_headers, data
-    except KeyError:
-        st.error(f"Sheet {sheet_name} not found in the workbook.")
+        # Display watchlist data in a table
+        display_watchlist_data(cursor, selected_watchlist)
+
+        # Display logs in a text area
+        log_messages = get_log_messages()
+        st.subheader("Log Messages")
+        st.text_area("Log Messages", value=log_messages, height=200)
+
+    # Close the database connection
+    conn.close()
 
 if __name__ == "__main__":
     main()
