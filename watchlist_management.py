@@ -32,6 +32,17 @@ def create_watchlist_tables(cursor):
         )
     ''')
 
+    # Create a table to store the mapping between watchlists and stocks
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS watchlist_stock_mapping (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            watchlist_id INTEGER,
+            stock_id INTEGER,
+            FOREIGN KEY (watchlist_id) REFERENCES watchlist_names (id),
+            FOREIGN KEY (stock_id) REFERENCES watchlist_data (id)
+        )
+    ''')
+
 
 def get_watchlists(cursor):
     try:
@@ -184,7 +195,7 @@ def manage_watchlists(cursor):
             if update_watchlist_name(cursor, selected_watchlist, new_watchlist_name):
                 st.success(f"Watchlist name updated to '{new_watchlist_name}'.")
                 selected_watchlist = new_watchlist_name
-                st.experimental_rerun()
+                #st.experimental_rerun()
             else:
                 st.error("Failed to update the watchlist name.")
         else:
@@ -233,7 +244,7 @@ def manage_watchlists(cursor):
             watchlists.remove(selected_watchlist)
             # Clear the selected_watchlist as it no longer exists
             selected_watchlist = None
-            st.experimental_rerun()
+            #st.experimental_rerun()
         else:
             st.error(f"Failed to delete watchlist '{selected_watchlist}'.")
 
