@@ -1,3 +1,4 @@
+import csv
 import sqlite3
 
 import streamlit as st
@@ -12,12 +13,12 @@ def create_watchlist_tables(cursor):
         )
     ''')
 
-    # Create a table to store watchlist data
+    # Create a table to store watchlist data with a UNIQUE constraint on stock_symbol
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS watchlist_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             watchlist_id INTEGER,
-            stock_symbol TEXT,
+            stock_symbol TEXT UNIQUE,  -- Add UNIQUE constraint here
             stock_price REAL,
             per_change REAL,
             dma_200_close REAL,
@@ -52,30 +53,47 @@ def insert_watchlist_name(cursor, watchlist_name):
     finally:
         cursor.connection.commit()  # Commit the transaction
 
-def insert_stock_to_watchlist(cursor, watchlist_name, stock_symbol):
+# Modify the insert_stocks_from_csv function to keep track of failed stock symbols
+def insert_stocks_from_csv(cursor, watchlist_name, csv_content):
     try:
         # Check if the watchlist exists
         cursor.execute("SELECT id FROM watchlist_names WHERE name = ?", (watchlist_name,))
         watchlist_id = cursor.fetchone()
 
         if watchlist_id:
-            # Watchlist exists, insert the stock into the watchlist_data table
-            cursor.execute("""
-                INSERT INTO watchlist_data (watchlist_id, stock_symbol)
-                VALUES (?, ?)
-            """, (watchlist_id[0], stock_symbol))
+            # Watchlist exists, split CSV content by commas
+            stocks = [stock.strip() for stock in csv_content.split(',')]
+            stocks_added = 0
+            stocks_failed = 0
+            failed_stocks = []
+
+            for stock_symbol in stocks:
+                if stock_symbol:
+                    try:
+                        # Insert the stock into the watchlist_data table
+                        cursor.execute("""
+                            INSERT INTO watchlist_data (watchlist_id, stock_symbol)
+                            VALUES (?, ?)
+                        """, (watchlist_id[0], stock_symbol))
+                        stocks_added += 1
+                    except sqlite3.Error as e:
+                        # Handle individual stock insertion errors here
+                        print(f"Error inserting stock '{stock_symbol}': {e}")
+                        failed_stocks.append(stock_symbol)
+                        stocks_failed += 1
 
             # Commit the changes to the database
             cursor.connection.commit()
 
-            return True
+            return stocks_added, stocks_failed, failed_stocks
         else:
             # Watchlist does not exist
-            return False
+            return 0, 0, []  # Return 0 to indicate that no stocks were added
     except sqlite3.Error as e:
         # Handle database errors here
-        print(f"Error inserting stock into watchlist: {e}")
-        return False
+        print(f"Error inserting stocks into watchlist: {e}")
+        return 0, 0, []  # Return 0 to indicate that no stocks were added
+
 
 def update_watchlist_name(cursor, old_name, new_name):
     try:
@@ -174,16 +192,21 @@ def manage_watchlists(cursor):
 
     # Add a section to add stocks to the selected watchlist
     st.subheader(f"Add Stocks to '{selected_watchlist}'")
-    stock_symbol = st.text_input("Enter a stock symbol:")
-    if st.button("Add Stock"):
-        if stock_symbol:
-            if insert_stock_to_watchlist(cursor, selected_watchlist, stock_symbol):
-                st.success(f"Stock '{stock_symbol}' added to '{selected_watchlist}'.")
-                st.experimental_rerun()
-            else:
-                st.error(f"Failed to add stock '{stock_symbol}' to '{selected_watchlist}'.")
+    csv_content = st.text_area("Enter stock symbols (comma-separated):")
+
+    if st.button("Add Stocks"):
+        if csv_content:
+            stocks_added, stocks_failed, failed_stocks = insert_stocks_from_csv(cursor, selected_watchlist, csv_content)
+
+            if stocks_added > 0:
+                st.success(f"Successfully added {stocks_added} stocks to '{selected_watchlist}'.")
+
+            if stocks_failed > 0:
+                st.error(f"Failed to add {stocks_failed} stocks to '{selected_watchlist}': {', '.join(failed_stocks)}")
+
+            # st.experimental_rerun()
         else:
-            st.warning("Please enter a stock symbol.")
+            st.warning("Please enter stock symbols in CSV format.")
 
     # Get stocks for the selected watchlist
     stocks_in_watchlist = get_stocks_in_watchlist(cursor, selected_watchlist)
@@ -196,7 +219,7 @@ def manage_watchlists(cursor):
             if delete_stock_from_watchlist(cursor, selected_watchlist, stock_to_delete):
                 st.success(f"Stock '{stock_to_delete}' deleted from '{selected_watchlist}'.")
                 stocks_in_watchlist.remove(stock_to_delete)
-                st.experimental_rerun()
+                #st.experimental_rerun()
             else:
                 st.error(f"Failed to delete stock '{stock_to_delete}' from '{selected_watchlist}'.")
         else:
