@@ -131,3 +131,5 @@ dmypy.json
 .idea*
 kite_automation_config.py
 *.xlsx
+
+*.db
