@@ -2,6 +2,9 @@ import datetime
 import yfinance as yf
 import pandas as pd
 
+from nifty_indices import nifty_indices
+
+
 def calculate_rsi(data, period=14):
     close = data['Close']
     delta = close.diff()
@@ -24,8 +27,16 @@ def calculate_rsi(data, period=14):
 
     return pd.Series(rs_values, index=close.index[period:])
 
-def get_historical_data(stock_name, lookback_days=1000):
+def get_historical_data(stock_symbol, lookback_days=1000):
     try:
+
+        # Check if the stock_symbol matches any Nifty index
+        if stock_symbol in nifty_indices:
+            stock_name = nifty_indices[stock_symbol]
+        else:
+            # If no match is found, add ".NS" to the symbol
+            stock_name = stock_symbol + '.NS'
+
         end_date = datetime.date.today()
         start_date = end_date - datetime.timedelta(days=lookback_days)
         print(f'Getting historical data for {stock_name} from {start_date} to {end_date}')
@@ -44,9 +55,6 @@ def get_historical_data(stock_name, lookback_days=1000):
         stock_data['Price % from 200 DMA'] = ((stock_data['Close'] - stock_data['200 DMA (close)']) / stock_data['200 DMA (close)']) * 100
         stock_data['50 DMA (close)'] = stock_data['Close'].rolling(window=50).mean()
         stock_data['Price < 50DMA < 200DMA'] = (stock_data['Close'] < stock_data['50 DMA (close)']) & (stock_data['50 DMA (close)'] < stock_data['200 DMA (close)'])
-
-        #Code to create the CSV file.
-        #createCsv(stock_data, stock_name)
 
         return stock_data
     except Exception as e:

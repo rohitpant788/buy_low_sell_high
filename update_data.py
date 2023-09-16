@@ -33,11 +33,8 @@ def update_database(db_conn,watchlist_name):
         for index, row in watchlist_df.iterrows():
             sym = row[2]
 
-            # Add ".NS" to the symbol
-            stock_symbol = sym + '.NS'
-
             # Get historical data
-            candles = get_nse_data.get_historical_data(stock_symbol)
+            candles = get_nse_data.get_historical_data(sym)
             df = pd.DataFrame(candles)
 
             log_message = f'Processing symbol {sym}'
