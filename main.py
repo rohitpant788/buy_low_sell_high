@@ -17,7 +17,7 @@ from watchlist_management import get_watchlists, create_watchlist_tables, manage
 def main():
     st.title("Buy Low Sell High")
     # Create tabs for watchlist management and display
-    tabs = st.sidebar.radio("Navigation", ["Manage Watchlists", "Display Watchlist"])
+    tabs = st.sidebar.radio("Navigation", [ "Display Watchlist","Manage Watchlists"])
 
     if tabs == "Manage Watchlists":
 
