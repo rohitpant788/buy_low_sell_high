@@ -59,9 +59,7 @@ def main():
             st.header("User Watchlist Management")
 
             # Display available watchlists as radio buttons and manage watchlists
-            selected_watchlist = manage_watchlists(cursor)
-
-
+            selected_watchlist = manage_watchlists(cursor, conn)
 
             # Close the database connection
             conn.close()
@@ -82,11 +80,7 @@ def main():
         # Display available watchlists as radio buttons for display
         selected_watchlist = st.radio("Select a Watchlist", get_watchlists(cursor))
 
-        # Reload Data button
-        st.subheader(f"Reload Data '{selected_watchlist}'")
-        if st.button("Reload Data"):
-            with st.spinner("Reloading data..."):
-                update_database(conn, selected_watchlist)
+
 
         # Display watchlist data in a table
         display_watchlist_data(cursor, selected_watchlist)

@@ -3,6 +3,8 @@ import sqlite3
 
 import streamlit as st
 
+from update_data import update_database
+
 
 def create_watchlist_tables(cursor):
     # Create a table to store watchlist names
@@ -207,7 +209,7 @@ def delete_watchlist(cursor, watchlist_name):
 
 
 ########################################################################################################################
-def manage_watchlists(cursor):
+def manage_watchlists(cursor, conn):
     # User interaction section
     watchlist_name = st.text_input("Enter a new watchlist name:")
 
@@ -240,6 +242,12 @@ def manage_watchlists(cursor):
                 st.error("Failed to update the watchlist name.")
         else:
             st.warning("Please enter a new watchlist name.")
+
+    # Move the "Reload Data" button here
+    st.subheader(f"Reload Data '{selected_watchlist}'")
+    if st.button("Reload Data"):
+        with st.spinner("Reloading data..."):
+            update_database(conn, selected_watchlist)
 
     # Add a section to add stocks to the selected watchlist
     st.subheader(f"Add Stocks to '{selected_watchlist}'")
