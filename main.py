@@ -96,5 +96,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    # Run the scheduler
-    reload_all_watchlists()
