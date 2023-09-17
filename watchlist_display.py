@@ -2,6 +2,14 @@ import pandas as pd
 import streamlit as st
 
 
+def calculate_ranks(df):
+    # Calculate RSI Rank (ascending order)
+    df['RSI Rank'] = df['RSI'].rank(ascending=True, method='min')
+    # Calculate DMA 200 Rank (ascending order)
+    df['200 DMA Rank'] = df['% Away from 200 DMA'].rank(ascending=True, method='min')
+    return df
+
+
 def display_watchlist_data(cursor, selected_watchlist):
     cursor.execute('''
         SELECT
@@ -13,8 +21,6 @@ def display_watchlist_data(cursor, selected_watchlist):
             wd.dma_50_close,
             wd.price_50dma_200dma,
             wd.rsi,
-            wd.rsi_rank,
-            wd.dma_200_rank,
             wn.updated_at  -- Include the updated_at column from watchlist_names
         FROM watchlist_data AS wd
         JOIN watchlist_stock_mapping AS wsm ON wd.id = wsm.stock_id
@@ -41,13 +47,14 @@ def display_watchlist_data(cursor, selected_watchlist):
             'dma_50_close': '50 DMA Close',
             'price_50dma_200dma': 'Price < 50DMA <200DMA',
             'rsi': 'RSI',
-            'rsi_rank': 'RSI Rank',
-            'dma_200_rank': '200 DMA Rank',
             'updated_at': 'Updated At'  # Rename the updated_at column
         }
 
         # Rename the columns using the custom names
         df = df.rename(columns=custom_column_names)
+
+        # Calculate RSI Rank and DMA 200 Rank and update them in the DataFrame
+        df = calculate_ranks(df)
 
         # Display the "Watchlist Data" message with the updated timestamp
         st.write(f"Watchlist Data: Updated At {df['Updated At'].iloc[0]} (Asia/Kolkata)")
