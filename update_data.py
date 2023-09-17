@@ -2,6 +2,7 @@ import pandas as pd
 import logging
 import sqlite3
 from logging_utils import update_log_messages
+from datetime import datetime
 import get_nse_data
 
 # Configure logging
@@ -12,10 +13,21 @@ def update_database(db_conn,watchlist_name):
     try:
         cursor = db_conn.cursor()
 
+        # Store the current UTC time as the "updated_at" timestamp
+        updated_at = datetime.now()
+
+        # Update the database with the current timestamp in the updated_at column
+        cursor.execute('''
+                    UPDATE watchlist_names
+                    SET updated_at = ?
+                    WHERE name = ?
+                ''', (updated_at, watchlist_name))
+
         cursor.execute('''
             SELECT wd.*
             FROM watchlist_data AS wd
-            JOIN watchlist_names AS wn ON wd.watchlist_id = wn.id
+            JOIN watchlist_stock_mapping AS wsm ON wd.id = wsm.stock_id
+            JOIN watchlist_names AS wn ON wsm.watchlist_id = wn.id
             WHERE wn.name = ?
         ''', (watchlist_name,))
         rows = cursor.fetchall()
@@ -26,12 +38,12 @@ def update_database(db_conn,watchlist_name):
 
         # Assuming watchlist_data is a list of tuples
         watchlist_df = pd.DataFrame(rows,
-                                    columns=['id', 'watchlist_id', 'stock_symbol', 'stock_price', 'per_change',
+                                    columns=['id','stock_symbol', 'stock_price', 'per_change',
                                              'dma_200_close', 'percent_away_from_dma_200', 'dma_50_close',
                                              'price_50dma_200dma', 'rsi', 'rsi_rank', 'dma_200_rank'])
 
         for index, row in watchlist_df.iterrows():
-            sym = row[2]
+            sym = row[1]
 
             # Get historical data
             candles = get_nse_data.get_historical_data(sym)
