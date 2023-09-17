@@ -10,6 +10,7 @@ import streamlit_authenticator as stauth
 # Constants
 from config import DATABASE_FILE_PATH
 from logging_utils import get_log_messages
+from scheduler import reload_all_watchlists
 from update_data import update_database
 from watchlist_display import display_watchlist_data
 from watchlist_management import get_watchlists, create_watchlist_tables, manage_watchlists
@@ -59,9 +60,7 @@ def main():
             st.header("User Watchlist Management")
 
             # Display available watchlists as radio buttons and manage watchlists
-            selected_watchlist = manage_watchlists(cursor)
-
-
+            selected_watchlist = manage_watchlists(cursor, conn)
 
             # Close the database connection
             conn.close()
@@ -82,11 +81,7 @@ def main():
         # Display available watchlists as radio buttons for display
         selected_watchlist = st.radio("Select a Watchlist", get_watchlists(cursor))
 
-        # Reload Data button
-        st.subheader(f"Reload Data '{selected_watchlist}'")
-        if st.button("Reload Data"):
-            with st.spinner("Reloading data..."):
-                update_database(conn, selected_watchlist)
+
 
         # Display watchlist data in a table
         display_watchlist_data(cursor, selected_watchlist)
@@ -101,3 +96,5 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # Run the scheduler
+    reload_all_watchlists()
