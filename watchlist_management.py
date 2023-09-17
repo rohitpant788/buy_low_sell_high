@@ -9,7 +9,8 @@ def create_watchlist_tables(cursor):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS watchlist_names (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT
+            name TEXT,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP  -- Add updated_at column
         )
     ''')
 
@@ -17,7 +18,6 @@ def create_watchlist_tables(cursor):
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS watchlist_data (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            watchlist_id INTEGER,
             stock_symbol TEXT UNIQUE,  -- Add UNIQUE constraint here
             stock_price REAL,
             per_change REAL,
@@ -27,8 +27,7 @@ def create_watchlist_tables(cursor):
             price_50dma_200dma REAL,
             rsi REAL,
             rsi_rank INTEGER,
-            dma_200_rank INTEGER,
-            FOREIGN KEY (watchlist_id) REFERENCES watchlist_names (id)
+            dma_200_rank INTEGER
         )
     ''')
 
@@ -42,6 +41,7 @@ def create_watchlist_tables(cursor):
             FOREIGN KEY (stock_id) REFERENCES watchlist_data (id)
         )
     ''')
+
 
 
 def get_watchlists(cursor):
@@ -64,7 +64,6 @@ def insert_watchlist_name(cursor, watchlist_name):
     finally:
         cursor.connection.commit()  # Commit the transaction
 
-# Modify the insert_stocks_from_csv function to keep track of failed stock symbols
 def insert_stocks_from_csv(cursor, watchlist_name, csv_content):
     try:
         # Check if the watchlist exists
@@ -80,18 +79,41 @@ def insert_stocks_from_csv(cursor, watchlist_name, csv_content):
 
             for stock_symbol in stocks:
                 if stock_symbol:
-                    try:
-                        # Insert the stock into the watchlist_data table
+                    # Check if the stock symbol already exists in watchlist_data
+                    cursor.execute("""
+                        SELECT id FROM watchlist_data
+                        WHERE stock_symbol = ?
+                    """, (stock_symbol,))
+                    existing_stock = cursor.fetchone()
+
+                    if existing_stock:
+                        # The stock already exists, insert a new mapping
                         cursor.execute("""
-                            INSERT INTO watchlist_data (watchlist_id, stock_symbol)
+                            INSERT INTO watchlist_stock_mapping (watchlist_id, stock_id)
                             VALUES (?, ?)
-                        """, (watchlist_id[0], stock_symbol))
-                        stocks_added += 1
-                    except sqlite3.Error as e:
-                        # Handle individual stock insertion errors here
-                        print(f"Error inserting stock '{stock_symbol}': {e}")
-                        failed_stocks.append(stock_symbol)
-                        stocks_failed += 1
+                        """, (watchlist_id[0], existing_stock[0]))
+                    else:
+                        # The stock does not exist, insert it into watchlist_data and create a new mapping
+                        try:
+                            # Insert the stock into the watchlist_data table
+                            cursor.execute("""
+                                INSERT INTO watchlist_data (stock_symbol)
+                                VALUES (?)
+                            """, (stock_symbol,))
+                            stock_id = cursor.lastrowid  # Get the ID of the newly inserted stock
+
+                            # Insert the mapping into the watchlist_stock_mapping table
+                            cursor.execute("""
+                                INSERT INTO watchlist_stock_mapping (watchlist_id, stock_id)
+                                VALUES (?, ?)
+                            """, (watchlist_id[0], stock_id))
+
+                            stocks_added += 1
+                        except sqlite3.Error as e:
+                            # Handle individual stock insertion errors here
+                            print(f"Error inserting stock '{stock_symbol}': {e}")
+                            failed_stocks.append(stock_symbol)
+                            stocks_failed += 1
 
             # Commit the changes to the database
             cursor.connection.commit()
@@ -104,6 +126,7 @@ def insert_stocks_from_csv(cursor, watchlist_name, csv_content):
         # Handle database errors here
         print(f"Error inserting stocks into watchlist: {e}")
         return 0, 0, []  # Return 0 to indicate that no stocks were added
+
 
 
 def update_watchlist_name(cursor, old_name, new_name):
@@ -124,16 +147,29 @@ def delete_stock_from_watchlist(cursor, selected_watchlist, stock_to_delete):
         watchlist_id = cursor.fetchone()
 
         if watchlist_id:
-            # Delete the stock from watchlist_data based on watchlist_id and stock_symbol
+            # Find the stock_id from watchlist_stock_mapping
             cursor.execute("""
-                DELETE FROM watchlist_data
-                WHERE watchlist_id = ? AND stock_symbol = ?
+                SELECT stock_id FROM watchlist_stock_mapping
+                WHERE watchlist_id = ? AND stock_id IN (
+                    SELECT id FROM watchlist_data WHERE stock_symbol = ?
+                )
             """, (watchlist_id[0], stock_to_delete))
 
-            # Commit the changes to the database
-            cursor.connection.commit()
+            stock_id = cursor.fetchone()
 
-            return True
+            if stock_id:
+                # Delete the stock from watchlist_stock_mapping
+                cursor.execute("""
+                    DELETE FROM watchlist_stock_mapping
+                    WHERE watchlist_id = ? AND stock_id = ?
+                """, (watchlist_id[0], stock_id[0]))
+
+                # Commit the changes to the database
+                cursor.connection.commit()
+
+                return True
+            else:
+                return False  # Stock not found in the watchlist
         else:
             return False  # Watchlist not found
     except sqlite3.Error as e:
@@ -142,12 +178,14 @@ def delete_stock_from_watchlist(cursor, selected_watchlist, stock_to_delete):
         return False
 
 
+
 def get_stocks_in_watchlist(cursor, watchlist_name):
     try:
         cursor.execute('''
-            SELECT stock_symbol
-            FROM watchlist_data AS wd
-            JOIN watchlist_names AS wn ON wd.watchlist_id = wn.id
+            SELECT wd.stock_symbol
+            FROM watchlist_stock_mapping AS wsm
+            JOIN watchlist_names AS wn ON wsm.watchlist_id = wn.id
+            JOIN watchlist_data AS wd ON wsm.stock_id = wd.id
             WHERE wn.name = ?
         ''', (watchlist_name,))
         stocks = cursor.fetchall()
@@ -156,15 +194,17 @@ def get_stocks_in_watchlist(cursor, watchlist_name):
         print(f"Error retrieving stocks in watchlist: {e}")
         return []
 
+
 def delete_watchlist(cursor, watchlist_name):
     try:
         cursor.execute("DELETE FROM watchlist_names WHERE name = ?", (watchlist_name,))
-        cursor.execute("DELETE FROM watchlist_data WHERE watchlist_id IN (SELECT id FROM watchlist_names WHERE name = ?)", (watchlist_name,))
+        cursor.execute("DELETE FROM watchlist_stock_mapping WHERE watchlist_id IN (SELECT id FROM watchlist_names WHERE name = ?)", (watchlist_name,))
         cursor.connection.commit()
         return True
     except sqlite3.Error as e:
         print(f"Error deleting watchlist: {e}")
         return False
+
 
 ########################################################################################################################
 def manage_watchlists(cursor):
