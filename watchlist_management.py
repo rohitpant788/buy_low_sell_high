@@ -210,6 +210,16 @@ def delete_watchlist(cursor, watchlist_name):
 
 ########################################################################################################################
 def manage_watchlists(cursor, conn):
+
+    #Relaod All
+    st.subheader(f"Reload All Data")
+    if st.button("Reload All"):
+        watchlists = get_watchlists(cursor)
+        for watchlist_name in watchlists:
+            with st.spinner(f"Reloading data for '{watchlist_name}'..."):
+                update_database(conn, watchlist_name)
+                st.success(f"Data for '{watchlist_name}' reloaded.")
+
     # User interaction section
     watchlist_name = st.text_input("Enter a new watchlist name:")
 
@@ -230,6 +240,12 @@ def manage_watchlists(cursor, conn):
     # Debugging: Print the watchlist_name
     print(f"Watchlist Name: {watchlist_name}")
 
+    # # Reload only selected watchlist
+    # st.subheader(f"Reload Data '{selected_watchlist}'")
+    # if st.button("Reload Data"):
+    #     with st.spinner("Reloading data..."):
+    #         update_database(conn, selected_watchlist)
+
     # Add a section to edit the selected watchlist name
     new_watchlist_name = st.text_input("Edit Watchlist Name:", selected_watchlist)
     if st.button("Save"):
@@ -243,11 +259,7 @@ def manage_watchlists(cursor, conn):
         else:
             st.warning("Please enter a new watchlist name.")
 
-    # Move the "Reload Data" button here
-    st.subheader(f"Reload Data '{selected_watchlist}'")
-    if st.button("Reload Data"):
-        with st.spinner("Reloading data..."):
-            update_database(conn, selected_watchlist)
+
 
     # Add a section to add stocks to the selected watchlist
     st.subheader(f"Add Stocks to '{selected_watchlist}'")

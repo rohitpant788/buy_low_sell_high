@@ -1,4 +1,7 @@
+from datetime import datetime
+
 import pandas as pd
+import pytz
 import streamlit as st
 
 
@@ -56,8 +59,21 @@ def display_watchlist_data(cursor, selected_watchlist):
         # Calculate RSI Rank and DMA 200 Rank and update them in the DataFrame
         df = calculate_ranks(df)
 
-        # Display the "Watchlist Data" message with the updated timestamp
-        st.write(f"Watchlist Data: Updated At {df['Updated At'].iloc[0]} (Asia/Kolkata)")
+        # Assuming df['Updated At'].iloc[0] is a string representation of a timestamp
+        timestamp_str = df['Updated At'].iloc[0]
+
+        # Convert the string to a datetime object
+        timestamp_datetime = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
+
+        # Convert the datetime object to IST timezone
+        ist_timezone = pytz.timezone('Asia/Kolkata')
+        timestamp_in_ist = ist_timezone.localize(timestamp_datetime)
+
+        # Format the timestamp in a more readable way
+        formatted_time = timestamp_in_ist.strftime("%Y-%m-%d %I:%M:%S %p")
+
+        # Display the formatted timestamp
+        st.markdown(f"### Watchlist Data: Updated At {formatted_time} (Asia/Kolkata)")
 
         # Display the DataFrame as a table with custom headers
         st.write(df.drop(columns=['Updated At']), use_container_width=True)  # Exclude Updated At from table display
