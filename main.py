@@ -1,3 +1,5 @@
+import datetime
+
 import streamlit as st
 import sqlite3
 
@@ -17,6 +19,10 @@ from watchlist_management import get_watchlists, create_watchlist_tables, manage
 
 def main():
     st.title("Buy Low Sell High")
+
+    # Display the current date and time
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
+    st.write(f"Current Date and Time: {current_time}")
     # Create tabs for watchlist management and display
     tabs = st.sidebar.radio("Navigation", [ "Display Watchlist","Manage Watchlists"])
 
