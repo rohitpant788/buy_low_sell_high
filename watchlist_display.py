@@ -62,18 +62,44 @@ def display_watchlist_data(cursor, selected_watchlist):
         # Assuming df['Updated At'].iloc[0] is a string representation of a timestamp
         timestamp_str = df['Updated At'].iloc[0]
 
-        # Convert the string to a datetime object
-        timestamp_datetime = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S.%f")
+        try:
+            # Split the timestamp string to separate milliseconds and time zone offset
+            timestamp_parts = timestamp_str.split(".")
+            timestamp_without_milliseconds = timestamp_parts[0]
+            milliseconds_and_timezone = timestamp_parts[1]  # Contains milliseconds and time zone offset
 
-        # Convert the datetime object to IST timezone
-        ist_timezone = pytz.timezone('Asia/Kolkata')
-        timestamp_in_ist = ist_timezone.localize(timestamp_datetime)
+            # Convert the string without milliseconds to a datetime object
+            timestamp_datetime = datetime.strptime(timestamp_without_milliseconds, "%Y-%m-%d %H:%M:%S")
 
-        # Format the timestamp in a more readable way
-        formatted_time = timestamp_in_ist.strftime("%Y-%m-%d %I:%M:%S %p")
+            # Extract milliseconds from the milliseconds_and_timezone string
+            milliseconds = int(milliseconds_and_timezone.split("+")[0])
 
-        # Display the formatted timestamp
-        st.markdown(f"### Watchlist Data: Updated At {formatted_time} (Asia/Kolkata)")
+            # Truncate milliseconds to the maximum allowed microseconds value (999999)
+            microseconds = min(milliseconds * 1000, 999999)
 
-        # Display the DataFrame as a table with custom headers
-        st.write(df.drop(columns=['Updated At']), use_container_width=True)  # Exclude Updated At from table display
+            # Add the extracted microseconds to the datetime object
+            timestamp_datetime = timestamp_datetime.replace(microsecond=microseconds)
+
+            # Convert the datetime object to UTC timezone
+            utc_timezone = pytz.timezone('UTC')
+            timestamp_in_utc = utc_timezone.localize(timestamp_datetime)
+
+            # Convert UTC timestamp to IST timezone
+            ist_timezone = pytz.timezone('Asia/Kolkata')
+            timestamp_in_ist = timestamp_in_utc.astimezone(ist_timezone)
+
+            # Format the timestamp in a more readable way
+            formatted_time = timestamp_in_ist.strftime("%Y-%m-%d %I:%M:%S %p")
+
+            # Display the formatted timestamp
+            st.markdown(f"### Watchlist Data: Updated At {formatted_time} (Asia/Kolkata)")
+
+            # Display the DataFrame as a table with custom headers
+            st.write(df.drop(columns=['Updated At']), use_container_width=True)  # Exclude Updated At from table display
+
+        except ValueError as e:
+            st.error("Error: Invalid timestamp format.")
+            st.write(e)
+        except Exception as e:
+            st.error("An error occurred while processing the timestamp.")
+            st.write(e)
