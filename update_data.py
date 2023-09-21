@@ -1,6 +1,9 @@
 import pandas as pd
 import logging
 import sqlite3
+
+import pytz
+
 from logging_utils import update_log_messages
 from datetime import datetime
 import get_nse_data
@@ -14,7 +17,7 @@ def update_database(db_conn,watchlist_name):
         cursor = db_conn.cursor()
 
         # Store the current UTC time as the "updated_at" timestamp
-        updated_at = datetime.now()
+        updated_at = datetime.now(pytz.utc)
 
         # Update the database with the current timestamp in the updated_at column
         cursor.execute('''
