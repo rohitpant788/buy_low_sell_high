@@ -37,10 +37,10 @@ def get_historical_data(stock_symbol, lookback_days=1000):
             # If no match is found, add ".NS" to the symbol
             stock_name = stock_symbol + '.NS'
 
-        end_date = datetime.date.today()
+        end_date = datetime.date.today() - datetime.timedelta(days=1)
         start_date = end_date - datetime.timedelta(days=lookback_days)
         print(f'Getting historical data for {stock_name} from {start_date} to {end_date}')
-        stock_data = yf.download(stock_name, start=start_date, end=end_date)
+        stock_data = pd.concat([yf.download(stock_name, start=start_date, end=end_date), yf.download(stock_name, interval='1m').iloc[-1:]])
 
         if stock_data.empty:
             print(f"No data available for {stock_name} starting from {start_date}.")
@@ -60,7 +60,6 @@ def get_historical_data(stock_symbol, lookback_days=1000):
     except Exception as e:
         print(f"An error occurred: {str(e)}")
         return None
-
 
 def createCsv(stock_data, stock_name):
     # Select the columns you want to keep
