@@ -60,7 +60,7 @@ def display_watchlist_data(cursor, selected_watchlist):
         df = calculate_ranks(df)
 
         # Rearrange column order as per your requirement
-        column_order = ['Symbol', 'Price', 'Price < 50DMA <200DMA', 'RSI Rank', '200 DMA Rank']
+        column_order = ['Symbol', 'Price', 'Price < 50DMA <200DMA', 'RSI Rank', '200 DMA Rank', 'RSI']
         remaining_columns = [col for col in df.columns if col not in column_order]
         column_order += remaining_columns
 
