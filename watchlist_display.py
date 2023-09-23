@@ -59,6 +59,13 @@ def display_watchlist_data(cursor, selected_watchlist):
         # Calculate RSI Rank and DMA 200 Rank and update them in the DataFrame
         df = calculate_ranks(df)
 
+        # Rearrange column order as per your requirement
+        column_order = ['Symbol', 'Price', 'Price < 50DMA <200DMA', 'RSI Rank', '200 DMA Rank']
+        remaining_columns = [col for col in df.columns if col not in column_order]
+        column_order += remaining_columns
+
+        df = df[column_order]
+
         # Assuming df['Updated At'].iloc[0] is a string representation of a timestamp
         timestamp_str = df['Updated At'].iloc[0]
 
