@@ -40,18 +40,18 @@ def display_watchlist_data(cursor, selected_watchlist):
         column_names = [description[0] for description in cursor.description]
         df = pd.DataFrame(watchlist_data, columns=column_names)
 
-        # Define a dictionary to map original column names to custom names
         custom_column_names = {
             'stock_symbol': 'Symbol',
             'stock_price': 'Price',
+            'price_50dma_200dma': 'Price < 50DMA <200DMA',
+            'rsi': 'RSI',
             'per_change': '% Change',
             'dma_200_close': '200 DMA Close',
             'percent_away_from_dma_200': '% Away from 200 DMA',
             'dma_50_close': '50 DMA Close',
-            'price_50dma_200dma': 'Price < 50DMA <200DMA',
-            'rsi': 'RSI',
             'updated_at': 'Updated At'  # Rename the updated_at column
         }
+        # Define a dictionary to map original column names to custom names
 
         # Rename the columns using the custom names
         df = df.rename(columns=custom_column_names)
