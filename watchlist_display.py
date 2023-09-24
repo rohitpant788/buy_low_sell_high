@@ -4,7 +4,6 @@ import pandas as pd
 import pytz
 import streamlit as st
 
-
 def calculate_ranks(df):
     # Calculate RSI Rank (ascending order)
     df['RSI Rank'] = df['RSI'].rank(ascending=True, method='min')
@@ -100,6 +99,7 @@ def display_watchlist_data(cursor, selected_watchlist):
 
             # Display the formatted timestamp
             st.markdown(f"### Watchlist Data: Updated At {formatted_time} (Asia/Kolkata)")
+            st.markdown(f"### Test: Updated At {timestamp_str} (Asia/Kolkata)")
 
             # Display the DataFrame as a table with custom headers
             st.write(df.drop(columns=['Updated At']), use_container_width=True)  # Exclude Updated At from table display
