@@ -99,6 +99,7 @@ def display_watchlist_data(cursor, selected_watchlist):
 
             # Display the formatted timestamp
             st.markdown(f"### Watchlist Data: Updated At {formatted_time} (Asia/Kolkata)")
+            st.markdown(f"### Watchlist Data: Updated At  {timestamp_str} (UTC)")
 
             # Display the DataFrame as a table with custom headers
             st.write(df.drop(columns=['Updated At']), use_container_width=True)  # Exclude Updated At from table display
