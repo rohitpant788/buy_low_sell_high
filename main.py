@@ -120,8 +120,9 @@ def main():
             breakout_stocks = process_csv(uploaded_file, years_gap=years_gap, buffer=buffer)
             if breakout_stocks:
                 st.success("Stocks giving a multi-year breakout:")
-                for stock in breakout_stocks:
-                    st.write(stock)
+                for stock_symbol in breakout_stocks:
+                    tradingview_url = f"https://www.tradingview.com/chart/?symbol=NSE:{stock_symbol}"
+                    st.markdown(f"[{stock_symbol} Chart on TradingView]({tradingview_url})")
             else:
                 st.info("No stocks are giving a multi-year breakout at the moment.")
 
@@ -129,6 +130,7 @@ def main():
 
         log_messages = get_log_messages()  # Fetch all log messages
         log_output.text_area("Log Messages", value=log_messages, height=200)
+
 
 def process_csv(file, years_gap=5, buffer=0.05):
     # Read the CSV file
