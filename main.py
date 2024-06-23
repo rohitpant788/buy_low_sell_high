@@ -201,14 +201,13 @@ def check_multi_year_breakout(stock, years_gap=5, buffer=0.05, weeks_back=0):
     # Check if the latest price has just crossed the historical high with buffer
     if not current_week_df.empty:
         current_price = current_week_df['Close'].iloc[-1]
-        current_week_high = current_week_df['High'].max()
-        logger.info(f"The current week's high for {stock_symbol} is {current_week_high} and the closing price is {current_price}")
+        logger.info(f"The current week's closing price for {stock_symbol} is {current_price}")
 
         # Apply buffer to the comparison
-        current_week_high_with_buffer = current_week_high * (1 + buffer)
-        logger.info(f"The current week's high for {stock_symbol} with buffer is {current_week_high_with_buffer}")
+        current_price_with_buffer = current_price * (1 + buffer)
+        logger.info(f"The current week's closing price for {stock_symbol} with buffer is {current_price_with_buffer}")
 
-        if historical_high_with_buffer < previous_high and current_week_high_with_buffer > previous_high:
+        if historical_high_with_buffer < previous_high and current_price_with_buffer > previous_high:
             logger.info(f"{stock_symbol} is giving a multi-year breakout!")
             return True
 
