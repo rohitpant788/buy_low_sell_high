@@ -31,7 +31,7 @@ def main():
 
 
     # Create tabs for watchlist management and display
-    tabs = st.sidebar.radio("Navigation", [ "Display Watchlist","Manage Watchlists","Upload CSV"])
+    tabs = st.sidebar.radio("Navigation", [ "Display Watchlist","Manage Watchlists","Multi Year Breakout Stocks"])
 
     if tabs == "Manage Watchlists":
 
@@ -108,8 +108,8 @@ def main():
         # Close the database connection
         conn.close()
 
-    elif tabs == "Upload CSV":
-        st.header("Upload 52WeekHigh CSV")
+    elif tabs == "Multi Year Breakout Stocks":
+        st.header("Upload 52WeekHigh CSV from NSE")
         # Input fields for years_gap and buffer
         years_gap = st.slider("Years Gap", min_value=1, max_value=10, value=5, step=1,
                               help="Select the number of years for breakout analysis")
@@ -154,15 +154,14 @@ def process_csv(file, years_gap=5, buffer=0.05,weeks_back=0):
     return breakout_stocks
 
 # Function to check for multi-year breakout within the current week
-def check_multi_year_breakout(stock, years_gap=5, buffer=0.05,weeks_back=0):
+def check_multi_year_breakout(stock, years_gap=5, buffer=0.05, weeks_back=0):
     # Append '.NS' to the stock symbol for NSE
     stock_symbol = stock + '.NS'
 
     # Calculate start and end dates based on years_gap and weeks_back
     current_date = datetime.today()
     start_date = current_date - timedelta(days=365 * (years_gap + 10))
-    end_date = current_date - timedelta(
-        days=current_date.weekday() + 1 + (weeks_back * 7))  # Adjust for weeks back  # Exclude current week
+    end_date = current_date - timedelta(days=current_date.weekday() + 1 + (weeks_back * 7))  # Adjust for weeks back  # Exclude current week
 
     logger.info(f"Fetching data for {stock_symbol} from {start_date.date()} to {end_date.date()}")
 
@@ -189,22 +188,26 @@ def check_multi_year_breakout(stock, years_gap=5, buffer=0.05,weeks_back=0):
     previous_high = previous_df['High'].max()
     logger.info(f"The previous high for {stock_symbol} before {years_gap} years is {previous_high}")
 
-    # Get the current week's data
-    current_week_start = current_date - timedelta(days=current_date.weekday())
-    current_week_df = yf.download(stock_symbol, start=current_week_start, end=current_date)
-    logger.info(f"Checking current week's data for {stock_symbol} from {current_week_start.date()} to {current_date.date()}")
+    # Apply buffer to the comparison of historical_high and previous_high
+    historical_high_with_buffer = historical_high * (1 - buffer)
+    logger.info(f"The historical high with buffer for {stock_symbol} is {historical_high_with_buffer}")
+
+    # Get the current week's data, adjusted for weeks_back
+    current_week_start = current_date - timedelta(days=current_date.weekday() + (weeks_back * 7))
+    current_week_end = current_date  # Set the end date to today's date
+    current_week_df = yf.download(stock_symbol, start=current_week_start, end=current_week_end)
+    logger.info(f"Checking current week's data for {stock_symbol} from {current_week_start.date()} to {current_week_end.date()}")
 
     # Check if the latest price has just crossed the historical high with buffer
     if not current_week_df.empty:
         current_price = current_week_df['Close'].iloc[-1]
-        current_week_high = current_week_df['High'].max()
-        logger.info(f"The current week's high for {stock_symbol} is {current_week_high} and the closing price is {current_price}")
+        logger.info(f"The current week's closing price for {stock_symbol} is {current_price}")
 
         # Apply buffer to the comparison
-        current_week_high_with_buffer = current_week_high * (1 + buffer)
-        logger.info(f"The current week's high for {stock_symbol} with buffer is {current_week_high_with_buffer}")
+        current_price_with_buffer = current_price * (1 + buffer)
+        logger.info(f"The current week's closing price for {stock_symbol} with buffer is {current_price_with_buffer}")
 
-        if historical_high < previous_high and current_week_high_with_buffer > previous_high:
+        if historical_high_with_buffer < previous_high and current_price_with_buffer > previous_high:
             logger.info(f"{stock_symbol} is giving a multi-year breakout!")
             return True
 
