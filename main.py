@@ -29,13 +29,11 @@ def main():
     current_time = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
     st.write(f"Current Date and Time: {current_time}")
 
-
     # Create tabs for watchlist management and display
-    tabs = st.sidebar.radio("Navigation", [ "Display Watchlist","Manage Watchlists","Multi Year Breakout Stocks"])
+    tabs = st.sidebar.radio("Navigation", ["Display Watchlist", "Manage Watchlists", "Multi Year Breakout Stocks"])
 
     if tabs == "Manage Watchlists":
-
-        # ---User Authnetication------
+        # ---User Authentication------
         names = ['Rohit Pant']
         usernames = ['rohit']
 
@@ -56,10 +54,10 @@ def main():
         name, authentication_status, username = authenticator.login("Login", "main")
 
         if authentication_status == False:
-            st.error("UserName/ Password is incorrect")
+            st.error("Username/Password is incorrect")
 
         if authentication_status == None:
-            st.error("Please enter your UserName and Password")
+            st.error("Please enter your Username and Password")
 
         if authentication_status:
 
@@ -95,8 +93,6 @@ def main():
         # Display available watchlists as radio buttons for display
         selected_watchlist = st.radio("Select a Watchlist", get_watchlists(cursor))
 
-
-
         # Display watchlist data in a table
         display_watchlist_data(cursor, selected_watchlist)
 
@@ -109,31 +105,36 @@ def main():
         conn.close()
 
     elif tabs == "Multi Year Breakout Stocks":
-        st.header("Upload 52WeekHigh CSV from NSE")
+        st.header("Multi-Year Breakout Analysis")
+
         # Input fields for years_gap and buffer
         years_gap = st.slider("Years Gap", min_value=1, max_value=10, value=5, step=1,
                               help="Select the number of years for breakout analysis")
         buffer = st.slider("Buffer", min_value=0.01, max_value=0.10, value=0.05, step=0.01, format="%.2f",
                            help="Select the buffer percentage for breakout analysis")
         weeks_back = st.number_input("Weeks Back", min_value=0, value=0)
-        uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
-        if uploaded_file is not None:
-            breakout_stocks = process_csv(uploaded_file, years_gap=years_gap, buffer=buffer,weeks_back=weeks_back)
-            if breakout_stocks:
-                st.success("Stocks giving a multi-year breakout:")
-                for stock_symbol in breakout_stocks:
-                    tradingview_url = f"https://www.tradingview.com/chart/?symbol=NSE:{stock_symbol}"
-                    st.markdown(f"[{stock_symbol} Chart on TradingView]({tradingview_url})")
-            else:
-                st.info("No stocks are giving a multi-year breakout at the moment.")
+
+        # Provide an option to upload a CSV file or input manually
+        input_option = st.radio("Input Option", ["Upload CSV", "Manual Input"])
+
+        if input_option == "Upload CSV":
+            uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
+            if uploaded_file is not None:
+                breakout_stocks = process_csv(uploaded_file, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back)
+                display_breakout_stocks(breakout_stocks)
+        else:
+            default_symbols = "20MICRONS,21STCENMGM,AHIMSA,AIMTRON,ALEMBICLTD,ALPEXSOLAR,ALUWIND,AMEYA,ARVINDFASN,ASAHISONG,ASAL,ASALCBR,ASHOKA,AVPINFRA,AXISBANK,AXISCETF,AXISHCETF,BAJAJCON,BALUFORGE,BANKBEES,BASF,BAYERCROP,BBNPPGOLD,BEPL,BHARATFORG,BIKAJI,BIOCON,BLUECHIP,BLUEJET,BPL,BYKE,CHAMBLFERT,CHAVDA,CHOICEIN,CMRSL,CROMPTON,CROWN,DBL,DEEPAKNTR,DHANUKA,DIXON,DONEAR,DREDGECORP,EBBETF0430,EFACTOR,ELIN,EMMIL,ENSER,ESCORTS,ESG,EXCELINDUS,EXICOM,FACT,FEDERALBNK,FOSECOIND,GALLANTT,GANECOS,GAYAHWS,GEECEE,GEPIL,GMRP&UI,GODFRYPHLP,GRANULES,GRAVITA,GRINFRA,GSEC5IETF,HERCULES,HESTERBIO,HOACFOODS,HONDAPOWER,HSCL,HUHTAMAKI,IBREALEST,IIFLSEC,INDHOTEL,INDIANHUME,INOXGREEN,JINDALSTEL,JISLDVREQS,JNKINDIA,JSWENERGY,JSWINFRA,JSWSTEEL,JTEKTINDIA,JUNIORBEES,K2INFRA,KALYANKJIL,KAYA,KCK,KDL,KICL,KODYTECH,KRISHANA,KRISHNADEF,KSCL,LEMERITE,LGBFORGE,LIQUIDADD,LIQUIDSBI,LLOYDSENGG,LTF,LTFOODS,MAKEINDIA,MAPMYINDIA,MAWANASUG,MAXHEALTH,MEDIASSIST,MHRIL,MICEL,MID150BEES,MIDQ50ADD,MOHITIND,MON100,MOSMALL250,MOTHERSON,NAM-INDIA,NAVA,NFL,NOCIL,NV20BEES,OMINFRAL,OWAIS,PANAMAPET,PASHUPATI,PDMJEPAPER,PENINLAND,PERSISTENT,PILANIINVS,PKTEA,PNC,POKARNA,POLYCAB,POLYMED,PRECWIRE,PREMEXPLN,PRIMESECU,PUNJABCHEM,RACE,RAYMOND,RCF,REDTAPE,REFRACTORY,RKDL,RKFORGE,ROTO,SAMPANN,SANDESH,SAREGAMA,SCILAL,SENCO,SETFNIFBK,SHAKTIPUMP,SHILPAMED,SHRADHA,SILKFLEX,SJLOGISTIC,SKYGOLD,SMALLCAP,SMSPHARMA,SOMICONVEY,SPECTRUM,STOVEKRAFT,STYRENIX,SUMIT,SUMMITSEC,SUNTECK,SUPREMEPWR,SURAJEST,SURANAT&P,SUZLON,SWARAJENG,TBI,TCIFINANCE,TCLCONS,TECHLABS,TECHM,TEXINFRA,TGL,THANGAMAYL,THOMASCOOK,TIMETECHNO,TITAGARH,TNIDETF,UDAICEMENT,USK,UTIBANKETF,V2RETAIL,VGUARD,VILAS,VIVIANA,VMART,VSSL,WHIRLPOOL,WINDMACHIN,ZENITHEXPO,ZENSARTECH,ZTECH"
+            manual_input = st.text_area("Enter stock symbols separated by commas", default_symbols)
+            if manual_input:
+                stock_symbols = [symbol.strip() for symbol in manual_input.split(",")]
+                breakout_stocks = process_manual_input(stock_symbols, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back)
+                display_breakout_stocks(breakout_stocks)
 
         # Real-time logging display
-
         log_messages = get_log_messages()  # Fetch all log messages
         log_output.text_area("Log Messages", value=log_messages, height=200)
 
-
-def process_csv(file, years_gap=5, buffer=0.05,weeks_back=0):
+def process_csv(file, years_gap=5, buffer=0.05, weeks_back=0):
     # Read the CSV file
     df = pd.read_csv(file)
     df.columns = df.columns.str.strip()
@@ -148,7 +149,19 @@ def process_csv(file, years_gap=5, buffer=0.05,weeks_back=0):
     for stock in df[correct_column_name]:
         logger.info(f"##########################################{stock}##################################")
         logger.info(f"Processing stock: {stock}")
-        if check_multi_year_breakout(stock, years_gap=years_gap, buffer=buffer,weeks_back=weeks_back):
+        if check_multi_year_breakout(stock, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back):
+            breakout_stocks.append(stock)
+
+    return breakout_stocks
+
+def process_manual_input(stock_symbols, years_gap=5, buffer=0.05, weeks_back=0):
+    breakout_stocks = []
+
+    # Iterate over the list of stocks
+    for stock in stock_symbols:
+        logger.info(f"##########################################{stock}##################################")
+        logger.info(f"Processing stock: {stock}")
+        if check_multi_year_breakout(stock, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back):
             breakout_stocks.append(stock)
 
     return breakout_stocks
@@ -213,6 +226,15 @@ def check_multi_year_breakout(stock, years_gap=5, buffer=0.05, weeks_back=0):
 
     logger.info(f"{stock_symbol} is not giving a multi-year breakout.")
     return False
+
+def display_breakout_stocks(breakout_stocks):
+    if breakout_stocks:
+        st.success("Stocks giving a multi-year breakout:")
+        for stock_symbol in breakout_stocks:
+            tradingview_url = f"https://www.tradingview.com/chart/?symbol=NSE:{stock_symbol}"
+            st.markdown(f"[{stock_symbol} Chart on TradingView]({tradingview_url})")
+    else:
+        st.info("No stocks are giving a multi-year breakout at the moment.")
 
 if __name__ == "__main__":
     main()
