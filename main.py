@@ -115,9 +115,10 @@ def main():
                               help="Select the number of years for breakout analysis")
         buffer = st.slider("Buffer", min_value=0.01, max_value=0.10, value=0.05, step=0.01, format="%.2f",
                            help="Select the buffer percentage for breakout analysis")
+        weeks_back = st.number_input("Weeks Back", min_value=0, value=0)
         uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
         if uploaded_file is not None:
-            breakout_stocks = process_csv(uploaded_file, years_gap=years_gap, buffer=buffer)
+            breakout_stocks = process_csv(uploaded_file, years_gap=years_gap, buffer=buffer,weeks_back=weeks_back)
             if breakout_stocks:
                 st.success("Stocks giving a multi-year breakout:")
                 for stock_symbol in breakout_stocks:
@@ -132,7 +133,7 @@ def main():
         log_output.text_area("Log Messages", value=log_messages, height=200)
 
 
-def process_csv(file, years_gap=5, buffer=0.05):
+def process_csv(file, years_gap=5, buffer=0.05,weeks_back=0):
     # Read the CSV file
     df = pd.read_csv(file)
     df.columns = df.columns.str.strip()
@@ -147,20 +148,21 @@ def process_csv(file, years_gap=5, buffer=0.05):
     for stock in df[correct_column_name]:
         logger.info(f"##########################################{stock}##################################")
         logger.info(f"Processing stock: {stock}")
-        if check_multi_year_breakout(stock, years_gap=years_gap, buffer=buffer):
+        if check_multi_year_breakout(stock, years_gap=years_gap, buffer=buffer,weeks_back=weeks_back):
             breakout_stocks.append(stock)
 
     return breakout_stocks
 
 # Function to check for multi-year breakout within the current week
-def check_multi_year_breakout(stock, years_gap=5, buffer=0.05):
+def check_multi_year_breakout(stock, years_gap=5, buffer=0.05,weeks_back=0):
     # Append '.NS' to the stock symbol for NSE
     stock_symbol = stock + '.NS'
 
-    # Calculate start and end dates based on years_gap
+    # Calculate start and end dates based on years_gap and weeks_back
     current_date = datetime.today()
     start_date = current_date - timedelta(days=365 * (years_gap + 10))
-    end_date = current_date - timedelta(days=current_date.weekday() + 1)  # Exclude current week
+    end_date = current_date - timedelta(
+        days=current_date.weekday() + 1 + (weeks_back * 7))  # Adjust for weeks back  # Exclude current week
 
     logger.info(f"Fetching data for {stock_symbol} from {start_date.date()} to {end_date.date()}")
 
