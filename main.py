@@ -128,7 +128,7 @@ def main():
             if manual_input:
                 stock_symbols = [symbol.strip() for symbol in manual_input.split(",")]
                 breakout_stocks = process_manual_input(stock_symbols, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back)
-                display_breakout_stocks(breakout_stocks)
+                display_breakout_stocks(breakout_stocks,years_gap,buffer,weeks_back)
 
         # Real-time logging display
         log_messages = get_log_messages()  # Fetch all log messages
