@@ -1,5 +1,4 @@
 from datetime import datetime
-
 import pandas as pd
 import pytz
 import streamlit as st
@@ -11,6 +10,9 @@ def calculate_ranks(df):
     df['200 DMA Rank'] = df['% Away from 200 DMA'].rank(ascending=True, method='min')
     return df
 
+def create_tradingview_link(symbol):
+    tradingview_url = f"https://www.tradingview.com/chart/?symbol=NSE:{symbol}"
+    return f'<a href="{tradingview_url}" target="_blank">{symbol}</a>'
 
 def display_watchlist_data(cursor, selected_watchlist):
     cursor.execute('''
@@ -58,6 +60,9 @@ def display_watchlist_data(cursor, selected_watchlist):
         # Calculate RSI Rank and DMA 200 Rank and update them in the DataFrame
         df = calculate_ranks(df)
 
+        # Add TradingView links to the Symbol column
+        df['Symbol'] = df['Symbol'].apply(create_tradingview_link)
+
         # Rearrange column order as per your requirement
         column_order = ['Symbol', 'Price', 'Price < 50DMA <200DMA', 'RSI Rank', '200 DMA Rank', 'RSI']
         remaining_columns = [col for col in df.columns if col not in column_order]
@@ -69,22 +74,26 @@ def display_watchlist_data(cursor, selected_watchlist):
         timestamp_str = df['Updated At'].iloc[0]
 
         try:
-            # Split the timestamp string to separate milliseconds and time zone offset
-            timestamp_parts = timestamp_str.split(".")
-            timestamp_without_milliseconds = timestamp_parts[0]
-            milliseconds_and_timezone = timestamp_parts[1]  # Contains milliseconds and time zone offset
+            if '.' in timestamp_str:
+                # Split the timestamp string to separate milliseconds and time zone offset
+                timestamp_parts = timestamp_str.split(".")
+                timestamp_without_milliseconds = timestamp_parts[0]
+                milliseconds_and_timezone = timestamp_parts[1]  # Contains milliseconds and time zone offset
 
-            # Convert the string without milliseconds to a datetime object
-            timestamp_datetime = datetime.strptime(timestamp_without_milliseconds, "%Y-%m-%d %H:%M:%S")
+                # Convert the string without milliseconds to a datetime object
+                timestamp_datetime = datetime.strptime(timestamp_without_milliseconds, "%Y-%m-%d %H:%M:%S")
 
-            # Extract milliseconds from the milliseconds_and_timezone string
-            milliseconds = int(milliseconds_and_timezone.split("+")[0])
+                # Extract milliseconds from the milliseconds_and_timezone string
+                milliseconds = int(milliseconds_and_timezone.split("+")[0])
 
-            # Truncate milliseconds to the maximum allowed microseconds value (999999)
-            microseconds = min(milliseconds * 1000, 999999)
+                # Truncate milliseconds to the maximum allowed microseconds value (999999)
+                microseconds = min(milliseconds * 1000, 999999)
 
-            # Add the extracted microseconds to the datetime object
-            timestamp_datetime = timestamp_datetime.replace(microsecond=microseconds)
+                # Add the extracted microseconds to the datetime object
+                timestamp_datetime = timestamp_datetime.replace(microsecond=microseconds)
+            else:
+                # If there are no milliseconds in the timestamp string
+                timestamp_datetime = datetime.strptime(timestamp_str, "%Y-%m-%d %H:%M:%S")
 
             # Convert the datetime object to UTC timezone
             utc_timezone = pytz.timezone('UTC')
@@ -98,10 +107,10 @@ def display_watchlist_data(cursor, selected_watchlist):
             formatted_time = timestamp_in_ist.strftime("%Y-%m-%d %I:%M:%S %p")
 
             # Display the formatted timestamp
-            st.markdown(f"### Watchlist Data: Updated At {formatted_time} (Asia/Kolkata) and {timestamp_str} (UTC)" )
+            st.markdown(f"### Watchlist Data: Updated At {formatted_time} (Asia/Kolkata) and {timestamp_str} (UTC)")
 
             # Display the DataFrame as a table with custom headers
-            st.write(df.drop(columns=['Updated At']), use_container_width=True)  # Exclude Updated At from table display
+            st.write(df.drop(columns=['Updated At']).to_html(escape=False), unsafe_allow_html=True)  # Exclude Updated At from table display
 
         except ValueError as e:
             st.error("Error: Invalid timestamp format.")
