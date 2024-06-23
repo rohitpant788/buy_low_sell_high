@@ -179,7 +179,6 @@ def check_multi_year_breakout(stock, years_gap=5, buffer=0.05, weeks_back=0):
         return False
 
     # Get the historical high within the specified range (excluding current week)
-    # historical_df means the date range > year_gap and less then the end_date (end_date is by default the current week)
     historical_df = df[(df.index >= current_date - timedelta(days=365 * years_gap)) & (df.index < end_date)]
     historical_high = historical_df['High'].max()
     logger.info(f"The historical high for {stock_symbol} in the past {years_gap} years (excluding current week) is {historical_high}")
@@ -188,6 +187,10 @@ def check_multi_year_breakout(stock, years_gap=5, buffer=0.05, weeks_back=0):
     previous_df = df[df.index < current_date - timedelta(days=365 * years_gap)]
     previous_high = previous_df['High'].max()
     logger.info(f"The previous high for {stock_symbol} before {years_gap} years is {previous_high}")
+
+    # Apply buffer to the comparison of historical_high and previous_high
+    historical_high_with_buffer = historical_high * (1 - buffer)
+    logger.info(f"The historical high with buffer for {stock_symbol} is {historical_high_with_buffer}")
 
     # Get the current week's data, adjusted for weeks_back
     current_week_start = current_date - timedelta(days=current_date.weekday() + (weeks_back * 7))
@@ -205,7 +208,7 @@ def check_multi_year_breakout(stock, years_gap=5, buffer=0.05, weeks_back=0):
         current_week_high_with_buffer = current_week_high * (1 + buffer)
         logger.info(f"The current week's high for {stock_symbol} with buffer is {current_week_high_with_buffer}")
 
-        if historical_high < previous_high and current_week_high_with_buffer > previous_high:
+        if historical_high_with_buffer < previous_high and current_week_high_with_buffer > previous_high:
             logger.info(f"{stock_symbol} is giving a multi-year breakout!")
             return True
 
