@@ -107,6 +107,9 @@ def main():
     elif tabs == "Multi Year Breakout Stocks":
         st.header("Multi-Year Breakout Analysis")
 
+        # Add toggle button
+        analyze = st.checkbox("Perform Analysis")
+
         # Input fields for years_gap and buffer
         years_gap = st.slider("Years Gap", min_value=1, max_value=10, value=5, step=1,
                               help="Select the number of years for breakout analysis")
@@ -120,15 +123,29 @@ def main():
         if input_option == "Upload CSV":
             uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
             if uploaded_file is not None:
-                breakout_stocks = process_csv(uploaded_file, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back)
-                display_breakout_stocks(breakout_stocks,years_gap,buffer,weeks_back)
+                if st.button("Analyze CSV"):
+                    if analyze:
+                        breakout_stocks = process_csv(uploaded_file, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back)
+                        display_breakout_stocks(breakout_stocks,years_gap,buffer,weeks_back)
+                    else:
+                        df = pd.read_csv(uploaded_file)
+                        df.columns = df.columns.str.strip()
+                        df['Symbol'] = df['Symbol'].apply(create_tradingview_link)
+                        st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
         else:
             default_symbols = "20MICRONS,21STCENMGM,AHIMSA,AIMTRON,ALEMBICLTD,ALPEXSOLAR,ALUWIND,AMEYA,ARVINDFASN,ASAHISONG,ASAL,ASALCBR,ASHOKA,AVPINFRA,AXISBANK,AXISCETF,AXISHCETF,BAJAJCON,BALUFORGE,BANKBEES,BASF,BAYERCROP,BBNPPGOLD,BEPL,BHARATFORG,BIKAJI,BIOCON,BLUECHIP,BLUEJET,BPL,BYKE,CHAMBLFERT,CHAVDA,CHOICEIN,CMRSL,CROMPTON,CROWN,DBL,DEEPAKNTR,DHANUKA,DIXON,DONEAR,DREDGECORP,EBBETF0430,EFACTOR,ELIN,EMMIL,ENSER,ESCORTS,ESG,EXCELINDUS,EXICOM,FACT,FEDERALBNK,FOSECOIND,GALLANTT,GANECOS,GAYAHWS,GEECEE,GEPIL,GMRP&UI,GODFRYPHLP,GRANULES,GRAVITA,GRINFRA,GSEC5IETF,HERCULES,HESTERBIO,HOACFOODS,HONDAPOWER,HSCL,HUHTAMAKI,IBREALEST,IIFLSEC,INDHOTEL,INDIANHUME,INOXGREEN,JINDALSTEL,JISLDVREQS,JNKINDIA,JSWENERGY,JSWINFRA,JSWSTEEL,JTEKTINDIA,JUNIORBEES,K2INFRA,KALYANKJIL,KAYA,KCK,KDL,KICL,KODYTECH,KRISHANA,KRISHNADEF,KSCL,LEMERITE,LGBFORGE,LIQUIDADD,LIQUIDSBI,LLOYDSENGG,LTF,LTFOODS,MAKEINDIA,MAPMYINDIA,MAWANASUG,MAXHEALTH,MEDIASSIST,MHRIL,MICEL,MID150BEES,MIDQ50ADD,MOHITIND,MON100,MOSMALL250,MOTHERSON,NAM-INDIA,NAVA,NFL,NOCIL,NV20BEES,OMINFRAL,OWAIS,PANAMAPET,PASHUPATI,PDMJEPAPER,PENINLAND,PERSISTENT,PILANIINVS,PKTEA,PNC,POKARNA,POLYCAB,POLYMED,PRECWIRE,PREMEXPLN,PRIMESECU,PUNJABCHEM,RACE,RAYMOND,RCF,REDTAPE,REFRACTORY,RKDL,RKFORGE,ROTO,SAMPANN,SANDESH,SAREGAMA,SCILAL,SENCO,SETFNIFBK,SHAKTIPUMP,SHILPAMED,SHRADHA,SILKFLEX,SJLOGISTIC,SKYGOLD,SMALLCAP,SMSPHARMA,SOMICONVEY,SPECTRUM,STOVEKRAFT,STYRENIX,SUMIT,SUMMITSEC,SUNTECK,SUPREMEPWR,SURAJEST,SURANAT&P,SUZLON,SWARAJENG,TBI,TCIFINANCE,TCLCONS,TECHLABS,TECHM,TEXINFRA,TGL,THANGAMAYL,THOMASCOOK,TIMETECHNO,TITAGARH,TNIDETF,UDAICEMENT,USK,UTIBANKETF,V2RETAIL,VGUARD,VILAS,VIVIANA,VMART,VSSL,WHIRLPOOL,WINDMACHIN,ZENITHEXPO,ZENSARTECH,ZTECH"
             manual_input = st.text_area("Enter stock symbols separated by commas", default_symbols)
             if manual_input:
-                stock_symbols = [symbol.strip() for symbol in manual_input.split(",")]
-                breakout_stocks = process_manual_input(stock_symbols, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back)
-                display_breakout_stocks(breakout_stocks,years_gap,buffer,weeks_back)
+                if st.button("Analyze Manual Input"):
+                    stock_symbols = [symbol.strip() for symbol in manual_input.split(",")]
+                    if analyze:
+                        stock_symbols = [symbol.strip() for symbol in manual_input.split(",")]
+                        breakout_stocks = process_manual_input(stock_symbols, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back)
+                        display_breakout_stocks(breakout_stocks,years_gap,buffer,weeks_back)
+                    else:
+                        symbols_with_links = [create_tradingview_link(symbol) for symbol in stock_symbols]
+                        df = pd.DataFrame({'Symbols': symbols_with_links})
+                        st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
 
         # Real-time logging display
         log_messages = get_log_messages()  # Fetch all log messages
