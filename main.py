@@ -111,11 +111,11 @@ def main():
         analyze = st.checkbox("Perform Analysis")
 
         # Input fields for years_gap and buffer
-        years_gap = st.slider("Years Gap", min_value=1, max_value=10, value=5, step=1,
+        years_gap = st.slider("Years Gap", min_value=1, max_value=10, value=2, step=1,
                               help="Select the number of years for breakout analysis")
-        buffer = st.slider("Buffer", min_value=0.01, max_value=0.10, value=0.05, step=0.01, format="%.2f",
+        buffer = st.slider("Buffer", min_value=0.01, max_value=0.20, value=0.10, step=0.01, format="%.2f",
                            help="Select the buffer percentage for breakout analysis")
-        weeks_back = st.number_input("Weeks Back", min_value=0, value=0)
+        weeks_back = st.number_input("Weeks Back", min_value=0, value=12)
 
         # Provide an option to upload a CSV file or input manually
         input_option = st.radio("Input Option", ["Upload CSV", "Manual Input"])
@@ -129,8 +129,10 @@ def main():
                         display_breakout_stocks(breakout_stocks,years_gap,buffer,weeks_back)
                     else:
                         df = pd.read_csv(uploaded_file)
-                        df.columns = df.columns.str.strip()
-                        df['Symbol'] = df['Symbol'].apply(create_tradingview_link)
+                        df.columns = df.columns.str.strip().str.lower()  # Normalize column names to lowercase
+                        if 'symbol' not in df.columns:
+                            raise ValueError("CSV file must contain a 'symbol' column")
+                        df['symbol'] = df['symbol'].apply(create_tradingview_link)
                         st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
         else:
             default_symbols = "20MICRONS,21STCENMGM,AHIMSA,AIMTRON,ALEMBICLTD,ALPEXSOLAR,ALUWIND,AMEYA,ARVINDFASN,ASAHISONG,ASAL,ASALCBR,ASHOKA,AVPINFRA,AXISBANK,AXISCETF,AXISHCETF,BAJAJCON,BALUFORGE,BANKBEES,BASF,BAYERCROP,BBNPPGOLD,BEPL,BHARATFORG,BIKAJI,BIOCON,BLUECHIP,BLUEJET,BPL,BYKE,CHAMBLFERT,CHAVDA,CHOICEIN,CMRSL,CROMPTON,CROWN,DBL,DEEPAKNTR,DHANUKA,DIXON,DONEAR,DREDGECORP,EBBETF0430,EFACTOR,ELIN,EMMIL,ENSER,ESCORTS,ESG,EXCELINDUS,EXICOM,FACT,FEDERALBNK,FOSECOIND,GALLANTT,GANECOS,GAYAHWS,GEECEE,GEPIL,GMRP&UI,GODFRYPHLP,GRANULES,GRAVITA,GRINFRA,GSEC5IETF,HERCULES,HESTERBIO,HOACFOODS,HONDAPOWER,HSCL,HUHTAMAKI,IBREALEST,IIFLSEC,INDHOTEL,INDIANHUME,INOXGREEN,JINDALSTEL,JISLDVREQS,JNKINDIA,JSWENERGY,JSWINFRA,JSWSTEEL,JTEKTINDIA,JUNIORBEES,K2INFRA,KALYANKJIL,KAYA,KCK,KDL,KICL,KODYTECH,KRISHANA,KRISHNADEF,KSCL,LEMERITE,LGBFORGE,LIQUIDADD,LIQUIDSBI,LLOYDSENGG,LTF,LTFOODS,MAKEINDIA,MAPMYINDIA,MAWANASUG,MAXHEALTH,MEDIASSIST,MHRIL,MICEL,MID150BEES,MIDQ50ADD,MOHITIND,MON100,MOSMALL250,MOTHERSON,NAM-INDIA,NAVA,NFL,NOCIL,NV20BEES,OMINFRAL,OWAIS,PANAMAPET,PASHUPATI,PDMJEPAPER,PENINLAND,PERSISTENT,PILANIINVS,PKTEA,PNC,POKARNA,POLYCAB,POLYMED,PRECWIRE,PREMEXPLN,PRIMESECU,PUNJABCHEM,RACE,RAYMOND,RCF,REDTAPE,REFRACTORY,RKDL,RKFORGE,ROTO,SAMPANN,SANDESH,SAREGAMA,SCILAL,SENCO,SETFNIFBK,SHAKTIPUMP,SHILPAMED,SHRADHA,SILKFLEX,SJLOGISTIC,SKYGOLD,SMALLCAP,SMSPHARMA,SOMICONVEY,SPECTRUM,STOVEKRAFT,STYRENIX,SUMIT,SUMMITSEC,SUNTECK,SUPREMEPWR,SURAJEST,SURANAT&P,SUZLON,SWARAJENG,TBI,TCIFINANCE,TCLCONS,TECHLABS,TECHM,TEXINFRA,TGL,THANGAMAYL,THOMASCOOK,TIMETECHNO,TITAGARH,TNIDETF,UDAICEMENT,USK,UTIBANKETF,V2RETAIL,VGUARD,VILAS,VIVIANA,VMART,VSSL,WHIRLPOOL,WINDMACHIN,ZENITHEXPO,ZENSARTECH,ZTECH"
@@ -157,7 +159,8 @@ def process_csv(file, years_gap=5, buffer=0.05, weeks_back=0):
     df.columns = df.columns.str.strip()
 
     # Assuming the correct column name is 'Symbol'
-    correct_column_name = 'Symbol'
+    df.columns = df.columns.str.strip().str.lower()
+    correct_column_name = 'symbol'
 
     # Create a list to store results
     breakout_stocks = []
