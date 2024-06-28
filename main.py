@@ -12,7 +12,8 @@ import yfinance as yf
 # Constants
 from config import DATABASE_FILE_PATH
 from logging_utils import get_log_messages
-from multi_year_breakout import process_csv, display_breakout_stocks, create_tradingview_link, process_manual_input
+from multi_year_breakout import process_csv, display_breakout_stocks, create_tradingview_link, process_manual_input, \
+    create_stocks_table
 from watchlist_display import display_watchlist_data
 from watchlist_management import get_watchlists, create_watchlist_tables, manage_watchlists
 from datetime import datetime, timedelta
@@ -125,6 +126,7 @@ def main():
             uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
             if uploaded_file is not None:
                 if st.button("Analyze CSV"):
+                    create_stocks_table()
                     if analyze:
                         breakout_stocks = process_csv(uploaded_file, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back)
                         display_breakout_stocks(breakout_stocks,years_gap,buffer,weeks_back)
@@ -140,6 +142,7 @@ def main():
             manual_input = st.text_area("Enter stock symbols separated by commas", default_symbols)
             if manual_input:
                 if st.button("Analyze Manual Input"):
+                    create_stocks_table()
                     stock_symbols = [symbol.strip() for symbol in manual_input.split(",")]
                     if analyze:
                         stock_symbols = [symbol.strip() for symbol in manual_input.split(",")]
