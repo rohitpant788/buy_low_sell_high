@@ -113,7 +113,7 @@ def main():
         analyze = st.checkbox("Perform Analysis")
 
         # Input fields for years_gap and buffer
-        years_gap = st.slider("Years Gap", min_value=1, max_value=10, value=2, step=1,
+        years_gap = st.slider("Years Gap", min_value=1, max_value=10, value=10, step=1,
                               help="Select the number of years for breakout analysis")
         buffer = st.slider("Buffer", min_value=0.01, max_value=0.20, value=0.10, step=0.01, format="%.2f",
                            help="Select the buffer percentage for breakout analysis")
