@@ -18,14 +18,21 @@ from watchlist_display import display_watchlist_data
 from watchlist_management import get_watchlists, create_watchlist_tables, manage_watchlists
 from datetime import datetime, timedelta
 
+st.set_page_config(
+    page_title="Buy Low Sell High",
+    layout="wide",  # This will set the layout to wide mode
+    #initial_sidebar_state="collapsed"  # This will collapse the sidebar initially
+)
 # Configure logging to print to console
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger()
 # Create a Streamlit text area for logging
 log_output = st.empty()
 
+
 def main():
     st.title("Buy Low Sell High")
+
 
     # Display the current date and time
     current_time = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
@@ -154,8 +161,8 @@ def main():
                         st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
 
         # Real-time logging display
-        log_messages = get_log_messages()  # Fetch all log messages
-        log_output.text_area("Log Messages", value=log_messages, height=200)
+        # log_messages = get_log_messages()  # Fetch all log messages
+        # log_output.text_area("Log Messages", value=log_messages, height=200)
 
 
 
