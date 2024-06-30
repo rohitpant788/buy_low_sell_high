@@ -220,6 +220,7 @@ def create_tradingview_link(symbol):
     tradingview_url = f"https://www.tradingview.com/chart/?symbol=NSE:{symbol}"
     return f'<a href="{tradingview_url}" target="_blank">{symbol}</a>'
 
+
 def display_breakout_stocks(breakout_stocks, years_gap, buffer, weeks_back):
     st.subheader(f"Multi-Year Breakout Stocks ({years_gap} Years)")
     if breakout_stocks:
@@ -240,7 +241,8 @@ def display_breakout_stocks(breakout_stocks, years_gap, buffer, weeks_back):
             stock_names.append(stock_name)
 
             # Fetch historical data for breakout analysis
-            historical_high, historical_high_with_buffer, previous_high, current_price_with_buffer = get_stock_data(stock_symbol, years_gap, buffer, weeks_back)
+            historical_high, historical_high_with_buffer, previous_high, current_price_with_buffer = get_stock_data(
+                stock_symbol, years_gap, buffer, weeks_back)
 
             # Fetch current price from the database
             current_date = datetime.today()
@@ -251,7 +253,8 @@ def display_breakout_stocks(breakout_stocks, years_gap, buffer, weeks_back):
                 SELECT date, high, low, close, volume FROM historical_data
                 WHERE symbol = ? AND date BETWEEN ? AND ?
             '''
-            current_week_df = pd.read_sql_query(current_week_query, conn, params=(stock_symbol, current_week_start, current_week_end))
+            current_week_df = pd.read_sql_query(current_week_query, conn,
+                                                params=(stock_symbol, current_week_start, current_week_end))
             current_week_df['date'] = pd.to_datetime(current_week_df['date'])  # Convert date column to datetime
             current_week_df.set_index('date', inplace=True)  # Set date as index
 
@@ -272,7 +275,7 @@ def display_breakout_stocks(breakout_stocks, years_gap, buffer, weeks_back):
 
         # Create a DataFrame
         breakout_data = {
-            'Stock Name': [create_tradingview_link(name) for name in stock_names],
+            'Stock Name': stock_names,
             'Historical High': historical_highs,
             'Historical High With Buffer': historical_highs_with_buffer,
             'Previous High': previous_highs,
@@ -280,8 +283,27 @@ def display_breakout_stocks(breakout_stocks, years_gap, buffer, weeks_back):
             'Current Price with Buffer': current_prices_with_buffer
         }
 
-        # Display as a table with HTML rendering enabled
-        st.markdown(pd.DataFrame(breakout_data).to_html(escape=False), unsafe_allow_html=True)
+        # Create DataFrame for display and CSV download
+        df_display = pd.DataFrame(breakout_data)
+        df_display_html = df_display.copy()
+        df_display_html['Stock Name'] = df_display_html['Stock Name'].apply(create_tradingview_link)
+
+        # Display the DataFrame as an HTML table with links
+        st.markdown(df_display_html.to_html(escape=False), unsafe_allow_html=True)
+
+        # Create CSV string with only stock symbols
+        csv_symbols = ",".join(stock_names)
+
+        # Provide a download button for the CSV containing only stock symbols
+        st.download_button(
+            label="Download symbols as CSV",
+            data=csv_symbols.encode('utf-8'),
+            file_name='stock_symbols.csv',
+            mime='text/csv',
+        )
+
+        # Display the CSV symbols in a text area for easy copying
+        st.text_area("Copy the stock symbols below:", csv_symbols, height=100)
 
     else:
         st.info("No stocks are giving a multi-year breakout at the moment.")
