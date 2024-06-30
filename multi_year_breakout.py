@@ -291,14 +291,17 @@ def display_breakout_stocks(breakout_stocks, years_gap, buffer, weeks_back):
         # Display the DataFrame as an HTML table with links
         st.markdown(df_display_html.to_html(escape=False), unsafe_allow_html=True)
 
+        # Convert the DataFrame to CSV for download
+        csv_full = df_display.to_csv(index=False)
+
         # Create CSV string with only stock symbols
         csv_symbols = ",".join(stock_names)
 
-        # Provide a download button for the CSV containing only stock symbols
+        # Provide a download button for the complete CSV data
         st.download_button(
-            label="Download symbols as CSV",
-            data=csv_symbols.encode('utf-8'),
-            file_name='stock_symbols.csv',
+            label="Download complete table data as CSV",
+            data=csv_full.encode('utf-8'),
+            file_name='breakout_stocks.csv',
             mime='text/csv',
         )
 
