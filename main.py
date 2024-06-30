@@ -160,11 +160,5 @@ def main():
                         df = pd.DataFrame({'Symbols': symbols_with_links})
                         st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
 
-        # Real-time logging display
-        # log_messages = get_log_messages()  # Fetch all log messages
-        # log_output.text_area("Log Messages", value=log_messages, height=200)
-
-
-
 if __name__ == "__main__":
     main()
