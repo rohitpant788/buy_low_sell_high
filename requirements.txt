@@ -1,5 +1,6 @@
 APScheduler==3.10.4
 pandas==2.0.3
-streamlit==1.26.0
-streamlit_authenticator==0.2.3
-yfinance==0.2.26
+streamlit>=1.32.0
+streamlit_authenticator>=0.3.0
+yfinance>=0.2.66
+numpy<2.0.0

@@ -60,7 +60,11 @@ def main():
         authenticator = stauth.Authenticate(credentials, cookie_name="buy_low_sell_high", key="abcdef",
                                             cookie_expiry_days=30)
 
-        name, authentication_status, username = authenticator.login("Login", "main")
+        try:
+            name, authentication_status, username = authenticator.login('main')
+        except TypeError:
+            # Fallback for older versions or if signature mismatch persists
+            name, authentication_status, username = authenticator.login("Login", "main")
 
         if authentication_status == False:
             st.error("Username/Password is incorrect")

@@ -55,28 +55,54 @@ def fetch_and_store_stocks_data(symbol, start_date, end_date):
         stock_symbol = symbol + '.NS'
         # Fetch stock data from Yahoo Finance
         df = yf.download(stock_symbol, start=start_date, end=end_date)
-
+        
+        # Handle MultiIndex columns (flatten them if needed)
+        # yfinance >= 0.2.66 might return MultiIndex (Price, Ticker)
+        # Handle MultiIndex columns (flatten them if needed)
+        # yfinance >= 0.2.66 might return MultiIndex (Price, Ticker) or Index with tuples
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = df.columns.get_level_values(0)
+        else:
+            # Fallback for weird tuple-index cases that aren't strict MultiIndex
+            df.columns = [c[0] if isinstance(c, tuple) else c for c in df.columns]
+            
+        logger.info(f"Downloaded data shape for {stock_symbol}: {df.shape}")
+        if df.empty:
+            logger.warning(f"Downloaded DataFrame is empty for {stock_symbol}!")
+        else:
+            logger.info(f"First 5 rows for {stock_symbol}:\n{df.head()}")
+            
+        # Ensure 'Adj Close' exists (fallback to 'Close' if missing)
+        if 'Adj Close' not in df.columns:
+            if 'Close' in df.columns:
+                df['Adj Close'] = df['Close']
+            else:
+                logger.error(f"Neither 'Adj Close' nor 'Close' found for {stock_symbol}")
+                return
 
         conn = sqlite3.connect(DATABASE_FILE_PATH)
         cursor = conn.cursor()
 
         # Insert data into historical_data table
-        for index, row in df.iterrows():
+        if not df.empty:
+            rows_inserted = 0
+            for index, row in df.iterrows():
+                cursor.execute('''
+                    INSERT OR IGNORE INTO historical_data (symbol, date, high, low, close, adjusted_close, volume)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                ''', (symbol, index.date(), row['High'], row['Low'], row['Close'], row['Adj Close'], row['Volume']))
+                rows_inserted += 1
+
+            # Update cache_info table ONLY if we actually got data
             cursor.execute('''
-                INSERT OR IGNORE INTO historical_data (symbol, date, high, low, close, adjusted_close, volume)
-                VALUES (?, ?, ?, ?, ?, ?, ?)
-            ''', (symbol, index.date(), row['High'], row['Low'], row['Close'], row['Adj Close'], row['Volume']))
-
-        # Update cache_info table
-        cursor.execute('''
-            INSERT OR REPLACE INTO cache_info (symbol, last_updated)
-            VALUES (?, ?)
-        ''', (symbol, datetime.today().date()))
-
-        conn.commit()
-        conn.close()
-
-        logger.info(f"Data fetched and stored successfully for {symbol}")
+                INSERT OR REPLACE INTO cache_info (symbol, last_updated)
+                VALUES (?, ?)
+            ''', (symbol, datetime.today().date()))
+            
+            conn.commit()
+            logger.info(f"Data fetched and stored successfully for {symbol}. Rows inserted: {rows_inserted}")
+        else:
+            logger.warning(f"No data fetched for {symbol}. Cache will not be updated.")
 
     except Exception as e:
         logger.error(f"Error fetching or storing data for {symbol}: {str(e)}")
@@ -124,14 +150,10 @@ def check_multi_year_breakout(stock, years_gap=5, buffer=0.05, weeks_back=0):
     result = cursor.fetchone()
 
     if result:
-        last_updated = datetime.strptime(result[0], '%Y-%m-%d').date()
-        today = datetime.today().date()
-        if (today - last_updated).days > 1:  # Update cache if more than 1 day old
-            fetch_and_store_stocks_data(stock, last_updated, today)
+            fetch_and_store_stocks_data(stock, datetime.today() - timedelta(days=365 * (years_gap + 10)), datetime.today())
     else:
-        end_date = datetime.today().date()
-        start_date = end_date - timedelta(days=20 * 365)
-        fetch_and_store_stocks_data(stock, start_date, end_date)
+        logger.info(f"🆕 SOURCE: YFINANCE | No cache found for {stock}. Fetching fresh data.")
+        fetch_and_store_stocks_data(stock, datetime.today() - timedelta(days=365 * (years_gap + 10)), datetime.today())
 
     # Append '.NS' to the stock symbol for NSE
     stock_symbol = stock + '.NS'
