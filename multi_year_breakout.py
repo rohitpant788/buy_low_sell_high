@@ -242,8 +242,8 @@ def create_tradingview_link(symbol):
     tradingview_url = f"https://www.tradingview.com/chart/?symbol=NSE:{symbol}"
     return f'<a href="{tradingview_url}" target="_blank">{symbol}</a>'
 
-
-def display_breakout_stocks(breakout_stocks, years_gap, buffer, weeks_back):
+# Legacy display_breakout_stocks - REPLACED by AI-enabled version below
+def _legacy_display_breakout_stocks(breakout_stocks, years_gap, buffer, weeks_back):
     st.subheader(f"Multi-Year Breakout Stocks ({years_gap} Years)")
     if breakout_stocks:
         # Initialize lists to store data
@@ -332,6 +332,82 @@ def display_breakout_stocks(breakout_stocks, years_gap, buffer, weeks_back):
 
     else:
         st.info("No stocks are giving a multi-year breakout at the moment.")
+
+def get_fundamental_data(symbol):
+    try:
+        ticker = yf.Ticker(symbol + ".NS")
+        info = ticker.info
+        keys = ['trailingPE', 'forwardPE', 'returnOnEquity', 'debtToEquity', 'profitMargins', 'marketCap', 'sector']
+        return {k: info.get(k) for k in keys}
+    except:
+        return {}
+
+def display_breakout_stocks(breakout_stocks, years_gap=5, buffer=0.05, weeks_back=0, api_key=None):
+    if breakout_stocks:
+        st.success(f"Found {len(breakout_stocks)} stocks giving a multi-year breakout!")
+        
+        # Display the main table first
+        # ... (Existing Table Code) ...
+        # Recalculating details for table display
+        stock_names = []
+        historical_highs = []
+        historical_highs_with_buffer = []
+        previous_highs = []
+        current_prices = []
+        current_prices_with_buffer = []
+
+        for stock in breakout_stocks:
+            hist_high, hist_high_buffer, prev_high, curr_price_buffer = get_stock_data(stock, years_gap, buffer, weeks_back)
+            stock_names.append(stock)
+            historical_highs.append(hist_high)
+            historical_highs_with_buffer.append(hist_high_buffer)
+            previous_highs.append(prev_high)
+            current_prices.append(curr_price_buffer) # Note: this logic seems slightly redundant with check_multi_year_breakout but needed for table values
+
+        breakout_data = {
+            'Stock Name': stock_names,
+            'Historical High': historical_highs,
+            'Current Price (With Buffer)': current_prices
+        }
+        df_display = pd.DataFrame(breakout_data)
+        df_display['Stock Name'] = df_display['Stock Name'].apply(create_tradingview_link)
+        st.markdown(df_display.to_html(escape=False), unsafe_allow_html=True)
+        st.markdown("---")
+
+        st.subheader("🧠 AI Fundamental Analyst")
+        
+        # Initialize session state for AI results if not exists
+        if 'ai_results' not in st.session_state:
+            st.session_state.ai_results = {}
+        
+        for stock in breakout_stocks:
+            with st.expander(f"Analyze {stock} Fundamentals"):
+                col1, col2 = st.columns([3, 1])
+                with col1:
+                    st.write(f"**Symbol**: {stock}")
+                with col2:
+                    st.markdown(f"[View on Screener.in](https://www.screener.in/company/{stock}/)", unsafe_allow_html=True)
+                
+                # Check if we already have a result for this stock
+                if stock in st.session_state.ai_results:
+                    st.markdown(st.session_state.ai_results[stock])
+                
+                # Always show the button (even if result exists, user might want to regenerate)
+                if st.button(f"Generate AI Insight for {stock}", key=f"btn_{stock}"):
+                    if not api_key:
+                        st.error("Please enter a Gemini API Key in the sidebar first.")
+                    else:
+                        with st.spinner("Fetching fundamentals and asking AI..."):
+                            import ai_analyst
+                            fund_data = get_fundamental_data(stock)
+                            if fund_data:
+                                analysis = ai_analyst.analyze_stock_with_gemini(stock, fund_data, api_key)
+                                st.session_state.ai_results[stock] = analysis
+                                # Display immediately without rerun
+                                st.success("Analysis complete!")
+                                st.markdown(analysis)
+                            else:
+                                st.warning("Could not fetch fundamental data from Yahoo Finance.")
 
 
 def get_stock_data(stock_symbol, years_gap=5, buffer=0.05, weeks_back=0):

@@ -4,6 +4,9 @@ import pickle
 import sqlite3
 from pathlib import Path
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import pandas as pd
 import streamlit as st
 import streamlit_authenticator as stauth
@@ -38,8 +41,12 @@ def main():
     current_time = datetime.now().strftime("%Y-%m-%d %I:%M:%S %p")
     st.write(f"Current Date and Time: {current_time}")
 
+    # Initialize navigation state
+    if 'navigation_tab' not in st.session_state:
+        st.session_state.navigation_tab = "Multi Year Breakout Stocks"
+    
     # Create tabs for watchlist management and display
-    tabs = st.sidebar.radio("Navigation", ["Display Watchlist", "Manage Watchlists", "Multi Year Breakout Stocks"])
+    tabs = st.sidebar.radio("Navigation", ["Display Watchlist", "Manage Watchlists", "Multi Year Breakout Stocks"], key="navigation_tab")
 
     if tabs == "Manage Watchlists":
         # ---User Authentication------
@@ -120,18 +127,44 @@ def main():
     elif tabs == "Multi Year Breakout Stocks":
         st.header("Multi-Year Breakout Analysis")
 
-        # Add toggle button
-        analyze = st.checkbox("Perform Analysis")
+        # Initialize session state defaults for widgets
+        if 'analyze_checkbox' not in st.session_state:
+            st.session_state.analyze_checkbox = False
+        if 'years_gap_slider' not in st.session_state:
+            st.session_state.years_gap_slider = 4
+        if 'buffer_slider' not in st.session_state:
+            st.session_state.buffer_slider = 0.10
+        if 'weeks_back_input' not in st.session_state:
+            st.session_state.weeks_back_input = 12
+        if 'input_option_radio' not in st.session_state:
+            st.session_state.input_option_radio = "Manual Input"
+        if 'manual_symbols_input' not in st.session_state:
+            st.session_state.manual_symbols_input = "20MICRONS,21STCENMGM,AHIMSA,AIMTRON,ALEMBICLTD,ALPEXSOLAR,ALUWIND,AMEYA,ARVINDFASN,ASAHISONG,ASAL,ASALCBR,ASHOKA,AVPINFRA,AXISBANK,AXISCETF,AXISHCETF,BAJAJCON,BALUFORGE,BANKBEES,BASF,BAYERCROP,BBNPPGOLD,BEPL,BHARATFORG,BIKAJI,BIOCON,BLUECHIP,BLUEJET,BPL,BYKE,CHAMBLFERT,CHAVDA,CHOICEIN,CMRSL,CROMPTON,CROWN,DBL,DEEPAKNTR,DHANUKA,DIXON,DONEAR,DREDGECORP,EBBETF0430,EFACTOR,ELIN,EMMIL,ENSER,ESCORTS,ESG,EXCELINDUS,EXICOM,FACT,FEDERALBNK,FOSECOIND,GALLANTT,GANECOS,GAYAHWS,GEECEE,GEPIL,GMRP&UI,GODFRYPHLP,GRANULES,GRAVITA,GRINFRA,GSEC5IETF,HERCULES,HESTERBIO,HOACFOODS,HONDAPOWER,HSCL,HUHTAMAKI,IBREALEST,IIFLSEC,INDHOTEL,INDIANHUME,INOXGREEN,JINDALSTEL,JISLDVREQS,JNKINDIA,JSWENERGY,JSWINFRA,JSWSTEEL,JTEKTINDIA,JUNIORBEES,K2INFRA,KALYANKJIL,KAYA,KCK,KDL,KICL,KODYTECH,KRISHANA,KRISHNADEF,KSCL,LEMERITE,LGBFORGE,LIQUIDADD,LIQUIDSBI,LLOYDSENGG,LTF,LTFOODS,MAKEINDIA,MAPMYINDIA,MAWANASUG,MAXHEALTH,MEDIASSIST,MHRIL,MICEL,MID150BEES,MIDQ50ADD,MOHITIND,MON100,MOSMALL250,MOTHERSON,NAM-INDIA,NAVA,NFL,NOCIL,NV20BEES,OMINFRAL,OWAIS,PANAMAPET,PASHUPATI,PDMJEPAPER,PENINLAND,PERSISTENT,PILANIINVS,PKTEA,PNC,POKARNA,POLYCAB,POLYMED,PRECWIRE,PREMEXPLN,PRIMESECU,PUNJABCHEM,RACE,RAYMOND,RCF,REDTAPE,REFRACTORY,RKDL,RKFORGE,ROTO,SAMPANN,SANDESH,SAREGAMA,SCILAL,SENCO,SETFNIFBK,SHAKTIPUMP,SHILPAMED,SHRADHA,SILKFLEX,SJLOGISTIC,SKYGOLD,SMALLCAP,SMSPHARMA,SOMICONVEY,SPECTRUM,STOVEKRAFT,STYRENIX,SUMIT,SUMMITSEC,SUNTECK,SUPREMEPWR,SURAJEST,SURANAT&P,SUZLON,SWARAJENG,TBI,TCIFINANCE,TCLCONS,TECHLABS,TECHM,TEXINFRA,TGL,THANGAMAYL,THOMASCOOK,TIMETECHNO,TITAGARH,TNIDETF,UDAICEMENT,USK,UTIBANKETF,V2RETAIL,VGUARD,VILAS,VIVIANA,VMART,VSSL,WHIRLPOOL,WINDMACHIN,ZENITHEXPO,ZENSARTECH,ZTECH"
 
-        # Input fields for years_gap and buffer
-        years_gap = st.slider("Years Gap", min_value=1, max_value=10, value=4, step=1,
-                              help="Select the number of years for breakout analysis")
-        buffer = st.slider("Buffer", min_value=0.01, max_value=0.20, value=0.10, step=0.01, format="%.2f",
-                           help="Select the buffer percentage for breakout analysis")
-        weeks_back = st.number_input("Weeks Back", min_value=0, value=12)
+        # Add toggle button with session state key
+        analyze = st.checkbox("Perform Analysis", key="analyze_checkbox")
+
+        # Input fields for years_gap and buffer with session state keys
+        years_gap = st.slider("Years Gap", min_value=1, max_value=10, step=1,
+                              help="Select the number of years for breakout analysis", key="years_gap_slider")
+        buffer = st.slider("Buffer", min_value=0.01, max_value=0.20, step=0.01, format="%.2f",
+                           help="Select the buffer percentage for breakout analysis", key="buffer_slider")
+        weeks_back = st.number_input("Weeks Back", min_value=0, key="weeks_back_input")
 
         # Provide an option to upload a CSV file or input manually
-        input_option = st.radio("Input Option", ["Upload CSV", "Manual Input"])
+        input_option = st.radio("Input Option", ["Upload CSV", "Manual Input"], key="input_option_radio")
+
+        st.sidebar.markdown("---")
+        import os
+        # Load API key from: 1) Streamlit secrets (Cloud), 2) Environment variable (.env)
+        default_key = ""
+        try:
+            default_key = st.secrets.get("GEMINI_API_KEY", "")
+        except Exception:
+            pass
+        if not default_key:
+            default_key = os.getenv("GEMINI_API_KEY", "")
+        gemini_api_key = st.sidebar.text_input("Gemini API Key (for AI Analysis)", value=default_key, type="password", help="Get a free key from https://aistudio.google.com/")
 
         if input_option == "Upload CSV":
             uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
@@ -140,8 +173,14 @@ def main():
                     create_stocks_table()
                     if analyze:
                         breakout_stocks = process_csv(uploaded_file, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back)
-                        display_breakout_stocks(breakout_stocks,years_gap,buffer,weeks_back)
+                        st.session_state.breakout_results = {
+                            "stocks": breakout_stocks,
+                            "years_gap": years_gap,
+                            "buffer": buffer,
+                            "weeks_back": weeks_back
+                        }
                     else:
+                        st.session_state.breakout_results = None
                         df = pd.read_csv(uploaded_file)
                         df.columns = df.columns.str.strip().str.lower()  # Normalize column names to lowercase
                         if 'symbol' not in df.columns:
@@ -149,20 +188,29 @@ def main():
                         df['symbol'] = df['symbol'].apply(create_tradingview_link)
                         st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
         else:
-            default_symbols = "20MICRONS,21STCENMGM,AHIMSA,AIMTRON,ALEMBICLTD,ALPEXSOLAR,ALUWIND,AMEYA,ARVINDFASN,ASAHISONG,ASAL,ASALCBR,ASHOKA,AVPINFRA,AXISBANK,AXISCETF,AXISHCETF,BAJAJCON,BALUFORGE,BANKBEES,BASF,BAYERCROP,BBNPPGOLD,BEPL,BHARATFORG,BIKAJI,BIOCON,BLUECHIP,BLUEJET,BPL,BYKE,CHAMBLFERT,CHAVDA,CHOICEIN,CMRSL,CROMPTON,CROWN,DBL,DEEPAKNTR,DHANUKA,DIXON,DONEAR,DREDGECORP,EBBETF0430,EFACTOR,ELIN,EMMIL,ENSER,ESCORTS,ESG,EXCELINDUS,EXICOM,FACT,FEDERALBNK,FOSECOIND,GALLANTT,GANECOS,GAYAHWS,GEECEE,GEPIL,GMRP&UI,GODFRYPHLP,GRANULES,GRAVITA,GRINFRA,GSEC5IETF,HERCULES,HESTERBIO,HOACFOODS,HONDAPOWER,HSCL,HUHTAMAKI,IBREALEST,IIFLSEC,INDHOTEL,INDIANHUME,INOXGREEN,JINDALSTEL,JISLDVREQS,JNKINDIA,JSWENERGY,JSWINFRA,JSWSTEEL,JTEKTINDIA,JUNIORBEES,K2INFRA,KALYANKJIL,KAYA,KCK,KDL,KICL,KODYTECH,KRISHANA,KRISHNADEF,KSCL,LEMERITE,LGBFORGE,LIQUIDADD,LIQUIDSBI,LLOYDSENGG,LTF,LTFOODS,MAKEINDIA,MAPMYINDIA,MAWANASUG,MAXHEALTH,MEDIASSIST,MHRIL,MICEL,MID150BEES,MIDQ50ADD,MOHITIND,MON100,MOSMALL250,MOTHERSON,NAM-INDIA,NAVA,NFL,NOCIL,NV20BEES,OMINFRAL,OWAIS,PANAMAPET,PASHUPATI,PDMJEPAPER,PENINLAND,PERSISTENT,PILANIINVS,PKTEA,PNC,POKARNA,POLYCAB,POLYMED,PRECWIRE,PREMEXPLN,PRIMESECU,PUNJABCHEM,RACE,RAYMOND,RCF,REDTAPE,REFRACTORY,RKDL,RKFORGE,ROTO,SAMPANN,SANDESH,SAREGAMA,SCILAL,SENCO,SETFNIFBK,SHAKTIPUMP,SHILPAMED,SHRADHA,SILKFLEX,SJLOGISTIC,SKYGOLD,SMALLCAP,SMSPHARMA,SOMICONVEY,SPECTRUM,STOVEKRAFT,STYRENIX,SUMIT,SUMMITSEC,SUNTECK,SUPREMEPWR,SURAJEST,SURANAT&P,SUZLON,SWARAJENG,TBI,TCIFINANCE,TCLCONS,TECHLABS,TECHM,TEXINFRA,TGL,THANGAMAYL,THOMASCOOK,TIMETECHNO,TITAGARH,TNIDETF,UDAICEMENT,USK,UTIBANKETF,V2RETAIL,VGUARD,VILAS,VIVIANA,VMART,VSSL,WHIRLPOOL,WINDMACHIN,ZENITHEXPO,ZENSARTECH,ZTECH"
-            manual_input = st.text_area("Enter stock symbols separated by commas", default_symbols)
+            # Use session state for text area to preserve value across reruns
+            manual_input = st.text_area("Enter stock symbols separated by commas", key="manual_symbols_input")
             if manual_input:
                 if st.button("Analyze Manual Input"):
                     create_stocks_table()
                     stock_symbols = [symbol.strip() for symbol in manual_input.split(",")]
                     if analyze:
-                        stock_symbols = [symbol.strip() for symbol in manual_input.split(",")]
                         breakout_stocks = process_manual_input(stock_symbols, years_gap=years_gap, buffer=buffer, weeks_back=weeks_back)
-                        display_breakout_stocks(breakout_stocks,years_gap,buffer,weeks_back)
+                        st.session_state.breakout_results = {
+                            "stocks": breakout_stocks,
+                            "years_gap": years_gap,
+                            "buffer": buffer,
+                            "weeks_back": weeks_back
+                        }
                     else:
+                        st.session_state.breakout_results = None
                         symbols_with_links = [create_tradingview_link(symbol) for symbol in stock_symbols]
                         df = pd.DataFrame({'Symbols': symbols_with_links})
                         st.markdown(df.to_html(escape=False), unsafe_allow_html=True)
+
+        if "breakout_results" in st.session_state and st.session_state.breakout_results:
+            results = st.session_state.breakout_results
+            display_breakout_stocks(results["stocks"], results["years_gap"], results["buffer"], results["weeks_back"], api_key=gemini_api_key)
 
 if __name__ == "__main__":
     main()

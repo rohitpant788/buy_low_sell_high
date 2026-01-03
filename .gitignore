@@ -130,3 +130,6 @@ dmypy.json
 
 .idea*
 kite_automation_config.py
+
+# Streamlit secrets (DO NOT COMMIT)
+.streamlit/secrets.toml
