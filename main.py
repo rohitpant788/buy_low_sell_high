@@ -157,14 +157,19 @@ def main():
         st.sidebar.markdown("---")
         import os
         # Load API key from: 1) Streamlit secrets (Cloud), 2) Environment variable (.env)
-        default_key = ""
+        gemini_api_key = ""
         try:
-            default_key = st.secrets.get("GEMINI_API_KEY", "")
+            gemini_api_key = st.secrets.get("GEMINI_API_KEY", "")
         except Exception:
             pass
-        if not default_key:
-            default_key = os.getenv("GEMINI_API_KEY", "")
-        gemini_api_key = st.sidebar.text_input("Gemini API Key (for AI Analysis)", value=default_key, type="password", help="Get a free key from https://aistudio.google.com/")
+        if not gemini_api_key:
+            gemini_api_key = os.getenv("GEMINI_API_KEY", "")
+        
+        # Only show input field if no API key is configured
+        if not gemini_api_key:
+            gemini_api_key = st.sidebar.text_input("Gemini API Key (for AI Analysis)", value="", type="password", help="Get a free key from https://aistudio.google.com/")
+        else:
+            st.sidebar.success("✅ AI Analysis Ready")
 
         if input_option == "Upload CSV":
             uploaded_file = st.file_uploader("Choose a CSV file", type="csv")
